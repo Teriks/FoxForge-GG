@@ -37,15 +37,15 @@ export function LoadoutEditor() {
               <Tooltip key={slot} content={item ? itemTip(item) : "Add a held item"}>
                 <button
                   onClick={() => setPicker({ kind: "held", slot })}
-                  className="flex h-20 w-20 flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 p-1 hover:border-indigo-400 hover:bg-indigo-50"
+                  className="flex h-20 w-20 flex-col items-center justify-center rounded-xl border-2 border-dashed border-line p-1 hover:border-accent hover:bg-accent-weak"
                 >
                   {item ? (
                     <>
                       <img src={asset(item.iconAsset)} alt={item.displayName} className="h-10 w-10 object-contain" />
-                      <span className="mt-0.5 text-[10px] leading-tight text-neutral-600">{item.displayName}</span>
+                      <span className="mt-0.5 text-[10px] leading-tight text-muted">{item.displayName}</span>
                     </>
                   ) : (
-                    <span className="text-2xl text-neutral-300">+</span>
+                    <span className="text-2xl text-faint">+</span>
                   )}
                 </button>
               </Tooltip>
@@ -59,15 +59,15 @@ export function LoadoutEditor() {
         <Tooltip content={loadout.battleItemId && battleItemById.get(loadout.battleItemId) ? itemTip(battleItemById.get(loadout.battleItemId)!) : "Add a Trainer Item"}>
           <button
             onClick={() => setPicker({ kind: "battle" })}
-            className="flex h-20 w-20 flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 p-1 hover:border-indigo-400 hover:bg-indigo-50"
+            className="flex h-20 w-20 flex-col items-center justify-center rounded-xl border-2 border-dashed border-line p-1 hover:border-accent hover:bg-accent-weak"
           >
             {loadout.battleItemId && battleItemById.get(loadout.battleItemId) ? (
               <>
                 <img src={asset(battleItemById.get(loadout.battleItemId)!.iconAsset)} alt="" className="h-10 w-10 object-contain" />
-                <span className="mt-0.5 text-[10px] leading-tight text-neutral-600">{battleItemById.get(loadout.battleItemId)!.displayName}</span>
+                <span className="mt-0.5 text-[10px] leading-tight text-muted">{battleItemById.get(loadout.battleItemId)!.displayName}</span>
               </>
             ) : (
-              <span className="text-2xl text-neutral-300">+</span>
+              <span className="text-2xl text-faint">+</span>
             )}
           </button>
         </Tooltip>
@@ -80,7 +80,7 @@ export function LoadoutEditor() {
             const emblem = emblemById.get(pick.emblemId);
             if (!emblem) return null;
             return (
-              <div key={i} className="flex flex-col items-center rounded-lg border border-neutral-200 p-1">
+              <div key={i} className="flex flex-col items-center rounded-lg border border-line p-1">
                 <Tooltip content={emblemTip(emblem, pick.grade)}>
                   <span className="relative inline-block">
                     <img src={asset(emblemIconForGrade(emblem, pick.grade))} alt={emblem.pokemonName} className="h-9 w-9 object-contain" />
@@ -94,18 +94,18 @@ export function LoadoutEditor() {
                 <select
                   value={pick.grade}
                   onChange={(e) => dispatch({ type: "setEmblemGrade", index: i, grade: e.target.value as EmblemGrade })}
-                  className="mt-0.5 rounded border border-neutral-200 text-[9px]"
+                  className="mt-0.5 rounded border border-line text-[9px]"
                 >
                   {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
                 </select>
-                <button onClick={() => dispatch({ type: "removeEmblem", index: i })} className="text-[9px] text-red-400 hover:text-red-600">remove</button>
+                <button onClick={() => dispatch({ type: "removeEmblem", index: i })} className="text-[9px] text-neg hover:text-neg">remove</button>
               </div>
             );
           })}
           {loadout.emblems.length < MAX_EMBLEMS && (
             <button
               onClick={() => setPicker({ kind: "emblem" })}
-              className="flex h-[58px] w-12 items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 text-xl text-neutral-300 hover:border-indigo-400 hover:bg-indigo-50"
+              className="flex h-[58px] w-12 items-center justify-center rounded-lg border-2 border-dashed border-line text-xl text-faint hover:border-accent hover:bg-accent-weak"
             >+</button>
           )}
         </div>

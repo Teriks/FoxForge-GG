@@ -45,7 +45,7 @@ export function LevelGraph() {
           key={m.key}
           onClick={() => setMetricKey(m.key)}
           className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-            m.key === metricKey ? "text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            m.key === metricKey ? "text-white" : "bg-raise text-muted hover:bg-raise"
           }`}
           style={m.key === metricKey ? { backgroundColor: m.color } : undefined}
         >
@@ -59,13 +59,13 @@ export function LevelGraph() {
     <CollapsibleCard title="Level Scaling · Lv 1–15" persistKey="levelgraph" right={metricPills}>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={data} margin={{ top: 8, right: 16, bottom: 4, left: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="level" tick={{ fontSize: 12 }} tickLine={false} label={{ value: "Level", position: "insideBottom", offset: -2, fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 12 }} tickLine={false} width={48} domain={["auto", "auto"]} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-line)" />
+          <XAxis dataKey="level" tick={{ fontSize: 12, fill: "var(--color-muted)" }} tickLine={false} stroke="var(--color-line)" label={{ value: "Level", position: "insideBottom", offset: -2, fontSize: 11, fill: "var(--color-muted)" }} />
+          <YAxis tick={{ fontSize: 12, fill: "var(--color-muted)" }} tickLine={false} stroke="var(--color-line)" width={48} domain={["auto", "auto"]} />
           <Tooltip
             formatter={(v) => [v as number, metric.label]}
             labelFormatter={(l) => `Level ${l}`}
-            contentStyle={{ borderRadius: 8, border: "1px solid #e5e7eb", fontSize: 12 }}
+            contentStyle={{ borderRadius: 8, border: "1px solid var(--color-line)", background: "var(--color-surface)", color: "var(--color-ink)", fontSize: 12 }}
           />
           <ReferenceLine x={loadout.level} stroke={metric.color} strokeDasharray="4 4" label={{ value: "current", fontSize: 10, fill: metric.color }} />
           <Line type="monotone" dataKey="value" stroke={metric.color} strokeWidth={2.5} dot={{ r: 2 }} activeDot={{ r: 5 }} isAnimationActive={false} />

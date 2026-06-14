@@ -17,7 +17,8 @@ export function Tooltip({
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute left-1/2 z-50 hidden w-max max-w-[240px] -translate-x-1/2 ${pos} whitespace-pre-line rounded-lg bg-neutral-900/95 px-2.5 py-1.5 text-left text-[11px] leading-snug text-white shadow-xl ring-1 ring-black/10 group-hover/tt:block`}
+        style={{ background: "var(--color-tip-bg)", color: "var(--color-tip-ink)" }}
+        className={`pointer-events-none absolute left-1/2 z-50 hidden w-max max-w-[240px] -translate-x-1/2 ${pos} whitespace-pre-line rounded-lg px-2.5 py-1.5 text-left text-[11px] leading-snug shadow-xl ring-1 ring-black/10 group-hover/tt:block`}
       >
         {content}
       </span>

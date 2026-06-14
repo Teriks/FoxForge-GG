@@ -5,10 +5,10 @@ const storageKey = (k: string) => `unite-build-optimizer.collapsed.${k}`;
 type Tone = "default" | "indigo" | "amber" | "sky";
 
 const TONES: Record<Tone, { card: string; title: string }> = {
-  default: { card: "border-neutral-200 bg-white", title: "text-neutral-500" },
-  indigo: { card: "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white", title: "text-indigo-700" },
-  amber: { card: "border-amber-200 bg-amber-50", title: "text-amber-700" },
-  sky: { card: "border-sky-200 bg-sky-50", title: "text-sky-700" },
+  default: { card: "border-line bg-surface", title: "text-muted" },
+  indigo: { card: "border-rec-border bg-rec-bg", title: "text-rec-ink" },
+  amber: { card: "border-as-border bg-as-bg", title: "text-as-ink" },
+  sky: { card: "border-an-border bg-an-bg", title: "text-an-ink" },
 };
 
 /**
@@ -54,7 +54,7 @@ export function CollapsibleCard({
         onClick={toggle}
       >
         <div className="flex items-center gap-2">
-          <span aria-hidden className={`text-neutral-400 transition-transform ${open ? "" : "-rotate-90"}`}>
+          <span aria-hidden className={`text-faint transition-transform ${open ? "" : "-rotate-90"}`}>
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5.5 7.5 10 12l4.5-4.5" />
             </svg>

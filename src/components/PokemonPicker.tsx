@@ -30,12 +30,12 @@ export function PokemonPicker() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search Pokémon…"
-          className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+          className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm outline-none focus:border-accent"
         />
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as Role | "All")}
-          className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm"
+          className="rounded-lg border border-line px-2 py-1.5 text-sm"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>
@@ -51,14 +51,14 @@ export function PokemonPicker() {
               onClick={() => dispatch({ type: "setPokemon", pokemonId: p.id })}
               title={p.displayName}
               className={`group relative aspect-square rounded-lg border-2 p-0.5 transition
-                ${selected ? "border-indigo-500 bg-indigo-50" : "border-transparent hover:border-neutral-300 hover:bg-neutral-50"}`}
+                ${selected ? "border-accent bg-accent-weak" : "border-transparent hover:border-line hover:bg-raise"}`}
             >
               <img src={asset(p.iconAsset)} alt={p.displayName} loading="lazy" className="h-full w-full object-contain" />
             </button>
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-neutral-400">{filtered.length} Pokémon</p>
+      <p className="mt-2 text-xs text-faint">{filtered.length} Pokémon</p>
     </CollapsibleCard>
   );
 }

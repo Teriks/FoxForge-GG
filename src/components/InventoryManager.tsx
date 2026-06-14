@@ -38,29 +38,29 @@ export function InventoryManager() {
   const shownIds = shown.map((e) => e.id);
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-neutral-800">Emblem Inventory</h2>
-          <p className="text-xs text-neutral-500">
+          <h2 className="text-lg font-bold text-ink">Emblem Inventory</h2>
+          <p className="text-xs text-muted">
             Mark what you own per grade — owned emblems are highlighted in pickers and preferred by recommendations.
           </p>
         </div>
         <div className="text-right text-sm">
           <span className="font-semibold" style={{ color: GRADE_TINT[grade] }}>{ownedCount}</span>
-          <span className="text-neutral-400"> / {allEmblems.length} {grade} owned</span>
+          <span className="text-faint"> / {allEmblems.length} {grade} owned</span>
         </div>
       </div>
 
       {/* Controls */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5">
+        <div className="flex gap-1 rounded-lg bg-raise p-0.5">
           {GRADES.map((g) => (
             <button
               key={g}
               onClick={() => setGrade(g)}
               className={`rounded-md px-3 py-1 text-xs font-semibold capitalize transition ${
-                grade === g ? "bg-white shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                grade === g ? "bg-surface shadow-sm" : "text-muted hover:text-ink"
               }`}
               style={grade === g ? { color: GRADE_TINT[g] } : undefined}
             >
@@ -72,12 +72,12 @@ export function InventoryManager() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search…"
-          className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500"
+          className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm outline-none focus:border-accent"
         />
         <select
           value={color}
           onChange={(e) => setColor(e.target.value as EmblemColor | "all")}
-          className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm capitalize"
+          className="rounded-lg border border-line px-2 py-1.5 text-sm capitalize"
         >
           <option value="all">All colors</option>
           {ALL_EMBLEM_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -85,7 +85,7 @@ export function InventoryManager() {
         <button onClick={() => bulkSetOwned(shownIds, grade, true)} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">
           Own all shown
         </button>
-        <button onClick={() => bulkSetOwned(shownIds, grade, false)} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50">
+        <button onClick={() => bulkSetOwned(shownIds, grade, false)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-raise">
           Clear shown
         </button>
       </div>
@@ -101,7 +101,7 @@ export function InventoryManager() {
               key={e.id}
               onClick={() => toggleOwned(e.id, grade)}
               className={`relative flex items-center gap-2 rounded-xl border p-2 text-left transition ${
-                isOwned ? "border-amber-300 bg-amber-50" : "border-neutral-200 hover:border-neutral-300"
+                isOwned ? "border-as-border bg-as-bg" : "border-line hover:border-line"
               }`}
             >
               <span className="relative shrink-0">
@@ -113,17 +113,17 @@ export function InventoryManager() {
                 </span>
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-medium text-neutral-700">{e.pokemonName}</span>
-                <span className="block truncate text-[10px] text-neutral-400">
+                <span className="block truncate text-xs font-medium text-ink">{e.pokemonName}</span>
+                <span className="block truncate text-[10px] text-faint">
                   {stats.map((l) => `${l.label} ${l.value}`).join(" · ") || "—"}
                 </span>
               </span>
-              <span className={`text-base leading-none ${isOwned ? "text-amber-500" : "text-neutral-300"}`}>★</span>
+              <span className={`text-base leading-none ${isOwned ? "text-as-ink" : "text-faint"}`}>★</span>
             </button>
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-neutral-400">{shown.length} shown</p>
+      <p className="mt-2 text-xs text-faint">{shown.length} shown</p>
     </div>
   );
 }

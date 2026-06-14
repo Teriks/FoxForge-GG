@@ -23,7 +23,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
           key={o}
           onClick={() => onChange(o)}
           className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition ${
-            value === o ? "bg-white text-indigo-700 shadow" : "text-white/90 hover:bg-white/10"
+            value === o ? "bg-surface text-accent-ink shadow" : "text-white/90 hover:bg-white/10"
           }`}
         >
           {o}
@@ -34,11 +34,11 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
 }
 
 function Header({ tab, setTab, page, setPage }: { tab: Tab; setTab: (t: Tab) => void; page: Page; setPage: (p: Page) => void }) {
-  const { loadout, mode, setMode, expert } = useStore();
+  const { loadout, mode, setMode, expert, theme, setTheme } = useStore();
   const p = loadout.pokemonId ? pokemonById.get(loadout.pokemonId) : null;
   const role = p ? ROLE_COLOR[p.role] : null;
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-200 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm">
+    <header className="sticky top-0 z-30 border-b border-line bg-gradient-to-r from-[var(--color-header-a)] to-[var(--color-header-b)] text-white shadow-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
         {p ? (
           <img src={asset(p.imageAsset)} alt={p.displayName} className="h-12 w-12 rounded-full bg-white/20 object-cover ring-2 ring-white/50" />
@@ -60,6 +60,7 @@ function Header({ tab, setTab, page, setPage }: { tab: Tab; setTab: (t: Tab) => 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Segmented value={theme} options={["light", "dark", "neo"]} onChange={setTheme} />
           <button
             onClick={() => setPage(page === "inventory" ? "app" : "inventory")}
             className="rounded-xl bg-white/15 px-3 py-1.5 text-sm font-medium text-white hover:bg-white/25"
@@ -80,7 +81,7 @@ function Workspace() {
   const { expert } = useStore();
   const activeTab: Tab = expert ? tab : "build";
   return (
-    <div className="min-h-screen bg-neutral-100 text-neutral-900">
+    <div className="min-h-screen bg-bg text-ink">
       <Header tab={tab} setTab={setTab} page={page} setPage={setPage} />
       <main className="mx-auto flex max-w-6xl flex-col gap-4 p-4 sm:p-6">
         {page === "inventory" ? (
@@ -102,7 +103,7 @@ function Workspace() {
           <CompareView />
         )}
       </main>
-      <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-center text-xs text-neutral-400">
+      <footer className="mx-auto max-w-6xl px-6 pb-8 pt-2 text-center text-xs text-faint">
         Data from UNITE-DB · attack-speed model from community calculator · patch 1.23.1.1
         {!expert && <> · switch to <span className="font-medium">Expert</span> for attack speed, graphs & compare</>}
       </footer>

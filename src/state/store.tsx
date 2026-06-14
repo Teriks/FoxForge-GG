@@ -83,6 +83,12 @@ function loadMode(): ViewMode {
   try { return localStorage.getItem(MODE_KEY) === "expert" ? "expert" : "beginner"; } catch { return "beginner"; }
 }
 
+export type Theme = "light" | "dark" | "neo";
+const THEME_KEY = "unite-build-optimizer.theme.v1";
+function loadTheme(): Theme {
+  try { const t = localStorage.getItem(THEME_KEY); return t === "dark" || t === "neo" ? t : "light"; } catch { return "light"; }
+}
+
 interface Store {
   loadout: Loadout;
   dispatch: React.Dispatch<Action>;
@@ -98,6 +104,8 @@ interface Store {
   mode: ViewMode;
   setMode: (m: ViewMode) => void;
   expert: boolean; // convenience: mode === "expert"
+  theme: Theme;
+  setTheme: (t: Theme) => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -109,9 +117,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [owned, setOwned] = useState<Set<string>>(() => loadOwnedEmblems());
   const [mode, setModeState] = useState<ViewMode>(() => loadMode());
+  const [theme, setThemeState] = useState<Theme>(() => loadTheme());
 
   // Persist the in-progress build across reloads.
   useEffect(() => { saveCurrent(loadout); }, [loadout]);
+
+  // Apply the theme to <html data-theme>; CSS variables cascade from there.
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
   const store = useMemo<Store>(() => ({
     loadout,
@@ -149,7 +161,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     mode,
     expert: mode === "expert",
     setMode: (m) => { setModeState(m); try { localStorage.setItem(MODE_KEY, m); } catch { /* quota */ } },
-  }), [loadout, saved, saveError, owned, mode]);
+    theme,
+    setTheme: (t) => { setThemeState(t); try { localStorage.setItem(THEME_KEY, t); } catch { /* quota */ } },
+  }), [loadout, saved, saveError, owned, mode, theme]);
 
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

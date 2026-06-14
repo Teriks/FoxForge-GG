@@ -9,9 +9,9 @@ export function itemTip(item: HeldItem | BattleItem) {
   return (
     <span>
       <span className="font-semibold">{item.displayName}</span>
-      {item.description && <span className="mt-0.5 block text-neutral-300">{item.description}</span>}
+      {item.description && <span className="mt-0.5 block text-faint">{item.description}</span>}
       {stats.length > 0 && (
-        <span className="mt-1 block text-neutral-200">{stats.map((l) => `${l.label} ${l.value}`).join(" · ")}</span>
+        <span className="mt-1 block text-faint">{stats.map((l) => `${l.label} ${l.value}`).join(" · ")}</span>
       )}
     </span>
   );
@@ -23,8 +23,8 @@ export function emblemTip(emblem: Emblem, grade: EmblemGrade) {
   return (
     <span>
       <span className="font-semibold capitalize">{emblem.pokemonName} · {grade}</span>
-      <span className="mt-0.5 block capitalize text-neutral-300">{emblem.colors.join(" / ")}</span>
-      <span className="mt-1 block text-neutral-200">
+      <span className="mt-0.5 block capitalize text-faint">{emblem.colors.join(" / ")}</span>
+      <span className="mt-1 block text-faint">
         {stats.map((l) => `${l.label} ${l.value}`).join(" · ") || "no flat stats"}
       </span>
     </span>

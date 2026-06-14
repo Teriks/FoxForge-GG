@@ -29,24 +29,24 @@ export function EmblemSetSummary({ picks, precise = false }: { picks: { emblemId
   const colorRows = [...counts.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-xl bg-white/60 p-3 ring-1 ring-neutral-200">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-xl bg-surface/60 p-3 ring-1 ring-line">
       <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Emblem Stats</p>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Emblem Stats</p>
         <div className="flex flex-col gap-0.5">
           {lines.length === 0 ? (
-            <span className="text-xs text-neutral-400">No flat stats</span>
+            <span className="text-xs text-faint">No flat stats</span>
           ) : (
             lines.map((l) => (
               <div key={l.key} className="flex items-baseline justify-between gap-3 text-xs">
-                <span className="text-neutral-500">{l.label}</span>
-                <span className={`font-mono font-semibold ${l.sign === "pos" ? "text-emerald-600" : "text-red-500"}`}>{l.value}</span>
+                <span className="text-muted">{l.label}</span>
+                <span className={`font-mono font-semibold ${l.sign === "pos" ? "text-pos" : "text-neg"}`}>{l.value}</span>
               </div>
             ))
           )}
         </div>
       </div>
       <div>
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Color Sets</p>
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Color Sets</p>
         <div className="flex flex-col gap-0.5">
           {colorRows.map(([color, n]) => {
             const bonus = bonusByColor.get(color as EmblemColor);
@@ -55,10 +55,10 @@ export function EmblemSetSummary({ picks, precise = false }: { picks: { emblemId
               <div key={color} className="flex items-center justify-between gap-2 text-xs">
                 <span className="flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/10" style={{ background: EMBLEM_COLOR_HEX[color as EmblemColor] }} />
-                  <span className="capitalize text-neutral-600">{color}</span>
-                  <span className="text-neutral-400">×{n}</span>
+                  <span className="capitalize text-muted">{color}</span>
+                  <span className="text-faint">×{n}</span>
                 </span>
-                <span className={`font-mono ${bonus ? "font-semibold text-neutral-700" : "text-neutral-300"}`}>
+                <span className={`font-mono ${bonus ? "font-semibold text-ink" : "text-faint"}`}>
                   {bonus ? `+${(bonus * 100).toFixed(0)}% ${stat ? STAT_LABEL[stat] ?? stat : ""}` : "—"}
                 </span>
               </div>

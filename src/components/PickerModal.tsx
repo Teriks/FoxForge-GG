@@ -48,26 +48,26 @@ export function PickerModal({ title, items, onPick, onClose, filters, grades, ow
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-2xl bg-surface p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-neutral-800">{title}</h2>
-          <button onClick={onClose} className="rounded-lg px-2 py-1 text-neutral-400 hover:bg-neutral-100">✕</button>
+          <h2 className="text-lg font-bold text-ink">{title}</h2>
+          <button onClick={onClose} className="rounded-lg px-2 py-1 text-faint hover:bg-raise">✕</button>
         </div>
         <input
           autoFocus value={query} onChange={(e) => setQuery(e.target.value)}
           placeholder="Search…"
-          className="mb-3 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+          className="mb-3 rounded-lg border border-line px-3 py-2 text-sm outline-none focus:border-accent"
         />
         {grades && (
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-xs font-medium text-neutral-500">Grade</span>
-            <div className="flex gap-1 rounded-lg bg-neutral-100 p-0.5">
+            <span className="text-xs font-medium text-muted">Grade</span>
+            <div className="flex gap-1 rounded-lg bg-raise p-0.5">
               {GRADES.map((g) => (
                 <button
                   key={g}
                   onClick={() => setGrade(g)}
                   className={`rounded-md px-3 py-1 text-xs font-semibold capitalize transition ${
-                    grade === g ? "bg-white text-indigo-700 shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                    grade === g ? "bg-surface text-accent-ink shadow-sm" : "text-muted hover:text-ink"
                   }`}
                 >
                   {g}
@@ -93,8 +93,8 @@ export function PickerModal({ title, items, onPick, onClose, filters, grades, ow
                 key={it.id}
                 onClick={() => { onPick(it.id, grades ? grade : undefined); onClose(); }}
                 title={it.title ?? it.name}
-                className={`relative flex flex-col items-center gap-1 rounded-xl border p-2 text-center hover:border-indigo-400 hover:bg-indigo-50 ${
-                  ownedHere ? "border-amber-300 bg-amber-50/50" : "border-neutral-200"
+                className={`relative flex flex-col items-center gap-1 rounded-xl border p-2 text-center hover:border-accent hover:bg-accent-weak ${
+                  ownedHere ? "border-as-border bg-as-bg" : "border-line"
                 }`}
               >
                 {onToggleOwn && (
@@ -102,14 +102,14 @@ export function PickerModal({ title, items, onPick, onClose, filters, grades, ow
                     role="button"
                     title={ownedHere ? `Owned (${grade}) — click to unmark` : `Mark ${grade} as owned`}
                     onClick={(e) => { e.stopPropagation(); onToggleOwn(it.id, grade); }}
-                    className={`absolute right-1 top-1 text-sm leading-none ${ownedHere ? "text-amber-500" : "text-neutral-300 hover:text-amber-400"}`}
+                    className={`absolute right-1 top-1 text-sm leading-none ${ownedHere ? "text-as-ink" : "text-faint hover:text-as-ink"}`}
                   >
                     ★
                   </span>
                 )}
                 <img src={asset(grades && iconForGrade ? iconForGrade(it.id, grade) : it.icon)} alt={it.name} loading="lazy" className="h-12 w-12 object-contain" />
-                <span className="text-xs font-medium leading-tight text-neutral-700">{it.name}</span>
-                {it.subtitle && <span className="text-[10px] text-neutral-400">{it.subtitle}</span>}
+                <span className="text-xs font-medium leading-tight text-ink">{it.name}</span>
+                {it.subtitle && <span className="text-[10px] text-faint">{it.subtitle}</span>}
               </button>
             );
           })}
@@ -123,7 +123,7 @@ function FilterChip({ label, active, onClick }: { label: string; active: boolean
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-indigo-600 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"}`}
+      className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-accent text-white" : "bg-raise text-muted hover:bg-raise"}`}
     >
       {label}
     </button>

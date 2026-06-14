@@ -28,16 +28,16 @@ export function CompareView() {
         <BuildSelect label="B" value={bId} onChange={setBId} options={options} />
       </div>
       {da.pokemon && db.pokemon && da.pokemon.id !== db.pokemon.id && (
-        <p className="mb-2 rounded-lg bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+        <p className="mb-2 rounded-lg bg-as-bg px-3 py-1.5 text-xs text-as-ink">
           Comparing across different Pokémon ({da.pokemon.displayName} vs {db.pokemon.displayName}).
         </p>
       )}
       {!da.effective || !db.effective ? (
-        <p className="text-sm text-neutral-400">Both builds need a Pokémon selected.</p>
+        <p className="text-sm text-faint">Both builds need a Pokémon selected.</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase text-neutral-400">
+            <tr className="text-left text-xs uppercase text-faint">
               <th className="py-1">Stat</th>
               <th className="py-1 text-right">A</th>
               <th className="py-1 text-right">B</th>
@@ -52,22 +52,22 @@ export function CompareView() {
               const better = delta > 1e-9;
               const worse = delta < -1e-9;
               return (
-                <tr key={row.key} className="border-t border-neutral-100">
-                  <td className="py-1 text-neutral-600">{row.label}</td>
+                <tr key={row.key} className="border-t border-line-soft">
+                  <td className="py-1 text-muted">{row.label}</td>
                   <td className="py-1 text-right font-mono">{formatStat(av, row.kind)}</td>
                   <td className="py-1 text-right font-mono">{formatStat(bv, row.kind)}</td>
-                  <td className={`py-1 text-right font-mono ${better ? "text-emerald-600" : worse ? "text-red-500" : "text-neutral-300"}`}>
+                  <td className={`py-1 text-right font-mono ${better ? "text-pos" : worse ? "text-neg" : "text-faint"}`}>
                     {Math.abs(delta) < 1e-9 ? "—" : formatDelta(delta, row.kind)}
                   </td>
                 </tr>
               );
             })}
             {da.attackSpeed && db.attackSpeed && (
-              <tr className="border-t border-neutral-200 font-semibold">
-                <td className="py-1 text-neutral-600">Attacks / sec</td>
+              <tr className="border-t border-line font-semibold">
+                <td className="py-1 text-muted">Attacks / sec</td>
                 <td className="py-1 text-right font-mono">{da.attackSpeed.attacksPerSecond.toFixed(2)}</td>
                 <td className="py-1 text-right font-mono">{db.attackSpeed.attacksPerSecond.toFixed(2)}</td>
-                <td className="py-1 text-right font-mono text-neutral-500">
+                <td className="py-1 text-right font-mono text-muted">
                   {(db.attackSpeed.attacksPerSecond - da.attackSpeed.attacksPerSecond).toFixed(2)}
                 </td>
               </tr>
@@ -84,9 +84,9 @@ function BuildSelect({ label, value, onChange, options }: {
   options: { id: string; name: string; loadout: Loadout }[];
 }) {
   return (
-    <label className="flex flex-col gap-1 text-xs text-neutral-500">
+    <label className="flex flex-col gap-1 text-xs text-muted">
       <span>Build {label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm text-neutral-800">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-line px-2 py-1.5 text-sm text-ink">
         {options.map((o) => {
           const p = o.loadout.pokemonId ? pokemonById.get(o.loadout.pokemonId) : null;
           return <option key={o.id} value={o.id}>{o.name}{p ? ` — ${p.displayName}` : ""}</option>;

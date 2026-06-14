@@ -67,7 +67,7 @@ export function RecommendPanel() {
 
   if (!pokemon) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-neutral-500 shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface p-5 text-muted shadow-sm">
         Select a Pokémon to get a recommended build.
       </div>
     );
@@ -89,31 +89,31 @@ export function RecommendPanel() {
   const actions = (
     <div className="flex gap-2">
       {variants.length > 1 && (
-        <button onClick={reroll} className="rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100">↻ Reroll</button>
+        <button onClick={reroll} className="rounded-lg border border-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-accent-weak">↻ Reroll</button>
       )}
-      <button onClick={randomize} title="Generate an optimized emblem set" className="rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-100">🎲 Randomize</button>
-      <button onClick={apply} disabled={!build} className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white shadow hover:bg-indigo-700 disabled:opacity-40">Apply build</button>
+      <button onClick={randomize} title="Generate an optimized emblem set" className="rounded-lg border border-accent px-3 py-1.5 text-sm font-medium text-accent-ink hover:bg-accent-weak">🎲 Randomize</button>
+      <button onClick={apply} disabled={!build} className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white shadow hover:bg-accent-strong disabled:opacity-40">Apply build</button>
     </div>
   );
 
   return (
     <CollapsibleCard title="Recommended Build" persistKey="recommend" tone="indigo" right={actions}>
       {build && (
-        <p className="mb-3 text-xs text-neutral-500">
-          <span className="font-semibold text-neutral-700">{build.emblemName ?? build.name}</span>
+        <p className="mb-3 text-xs text-muted">
+          <span className="font-semibold text-ink">{build.emblemName ?? build.name}</span>
           {build.lane ? ` · ${build.lane}` : ""}
           {build.source === "curated" ? " · UNITE-DB" : " · generated"}
           {variants.length > 1 ? ` · ${Math.min(idx, variants.length - 1) + 1}/${variants.length}` : ""}
         </p>
       )}
       {!build ? (
-        <p className="text-sm text-neutral-400">No build available — try Randomize.</p>
+        <p className="text-sm text-faint">No build available — try Randomize.</p>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
             {/* Held items */}
             <div>
-              <p className="mb-1 text-xs font-medium text-neutral-400">Held Items</p>
+              <p className="mb-1 text-xs font-medium text-faint">Held Items</p>
               <div className="flex gap-2">
                 {build.heldItemIds.map((id) => {
                   const item = heldItemById.get(id);
@@ -121,7 +121,7 @@ export function RecommendPanel() {
                     <Tooltip key={id} content={itemTip(item)}>
                       <span className="flex w-16 flex-col items-center">
                         <img src={asset(item.iconAsset)} alt={item.displayName} className="h-10 w-10 object-contain" />
-                        <span className="mt-0.5 text-center text-[10px] leading-tight text-neutral-600">{item.displayName}</span>
+                        <span className="mt-0.5 text-center text-[10px] leading-tight text-muted">{item.displayName}</span>
                       </span>
                     </Tooltip>
                   ) : null;
@@ -130,19 +130,19 @@ export function RecommendPanel() {
             </div>
             {/* Trainer item */}
             <div>
-              <p className="mb-1 text-xs font-medium text-neutral-400">Trainer Item</p>
+              <p className="mb-1 text-xs font-medium text-faint">Trainer Item</p>
               {trainer ? (
                 <Tooltip content={itemTip(trainer)}>
                   <span className="flex w-16 flex-col items-center">
                     <img src={asset(trainer.iconAsset)} alt={trainer.displayName} className="h-10 w-10 object-contain" />
-                    <span className="mt-0.5 text-center text-[10px] leading-tight text-neutral-600">{trainer.displayName}</span>
+                    <span className="mt-0.5 text-center text-[10px] leading-tight text-muted">{trainer.displayName}</span>
                   </span>
                 </Tooltip>
-              ) : <span className="text-xs text-neutral-400">—</span>}
+              ) : <span className="text-xs text-faint">—</span>}
             </div>
             {/* Emblems */}
             <div>
-              <p className="mb-1 text-xs font-medium text-neutral-400">Emblems (10)</p>
+              <p className="mb-1 text-xs font-medium text-faint">Emblems (10)</p>
               <div className="flex flex-wrap gap-1">
                 {resolvedEmblems.map(({ emblem, grade }, i) => (
                   <Tooltip key={i} content={emblemTip(emblem, grade)}>
