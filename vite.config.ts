@@ -13,7 +13,7 @@ const htmlBranding = () => ({
 });
 
 // base: relative "./" by default (works in Tauri + any sub-path); the Pages
-// build overrides with VITE_BASE=/Pokemon-UNITE-Build-Tool/.
+// build overrides with VITE_BASE=/FoxForge-GG/.
 export default defineConfig({
   base: process.env.VITE_BASE ?? "./",
   plugins: [

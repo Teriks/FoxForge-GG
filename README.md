@@ -11,7 +11,7 @@ Three ways to use the tool — pick whichever suits you.
 
 ### 1. Use it in your browser (no install)
 
-Open the hosted web app: **<https://aerokita.github.io/Pokemon-UNITE-Build-Tool/>**
+Open the hosted web app: **<https://aerokita.github.io/FoxForge-GG/>**
 
 It's a PWA, so you can "Install" it from the browser for an app-like, offline-capable
 window. It updates automatically on reload.
@@ -19,7 +19,7 @@ window. It updates automatically on reload.
 ### 2. Download the desktop app
 
 Grab the latest installer from the
-**[Releases page](https://github.com/AeroKita/Pokemon-UNITE-Build-Tool/releases/latest)**:
+**[Releases page](https://github.com/AeroKita/FoxForge-GG/releases/latest)**:
 
 | OS | Download |
 | --- | --- |
@@ -51,8 +51,8 @@ OS shows a one-time warning on first launch — a normal double-click will be bl
 Requires **[Node.js](https://nodejs.org) 20+**. Clone, install, and start the dev server:
 
 ```bash
-git clone https://github.com/AeroKita/Pokemon-UNITE-Build-Tool.git
-cd Pokemon-UNITE-Build-Tool
+git clone https://github.com/AeroKita/FoxForge-GG.git
+cd FoxForge-GG
 npm install
 npm run dev        # open the printed URL (default http://localhost:5173)
 ```
@@ -185,7 +185,7 @@ and recompute pick it up automatically.
 - [x] **Themes** — light + dark (neon "Neo"-derived palette), toggleable in the header and
   persisted; all surfaces read from semantic Tailwind tokens ([`src/index.css`](src/index.css)).
 - [x] **Distribution** ([docs/07-distribution.md](docs/07-distribution.md)) — hosted web app +
-  installable PWA on [GitHub Pages](https://aerokita.github.io/Pokemon-UNITE-Build-Tool/)
+  installable PWA on [GitHub Pages](https://aerokita.github.io/FoxForge-GG/)
   ([`pages.yml`](.github/workflows/pages.yml)), plus native desktop installers for
   Windows/macOS/Linux built in CI on a version tag ([`release.yml`](.github/workflows/release.yml))
   with **signed Tauri auto-updates** ([`UpdatePanel.tsx`](src/components/UpdatePanel.tsx)). Game-data
