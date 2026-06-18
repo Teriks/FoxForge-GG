@@ -48,6 +48,12 @@
   --color-tab-ink: #9aa1ad;
   --color-tab-active: #4f5bd5;
 
+  /* Mode toggle pill — Basic (calm neutral) vs Advanced (accent), per theme. */
+  --color-mode-basic-bg: #e9ebf1;
+  --color-mode-basic-ink: #5b6472;
+  --color-mode-advanced-bg: #4f5bd5;
+  --color-mode-advanced-ink: #ffffff;
+
   --color-tip-bg: #1a1d23;
   --color-tip-ink: #ffffff;
 
@@ -117,6 +123,11 @@
   --color-tab-bg: #1b1630;
   --color-tab-ink: #7d72a8;
   --color-tab-active: #67e8f9;
+
+  --color-mode-basic-bg: rgba(255, 255, 255, 0.18);
+  --color-mode-basic-ink: #ffffff;
+  --color-mode-advanced-bg: #22d3ee;
+  --color-mode-advanced-ink: #06283d;
 }
 
 /* ------------------------------------------------------------- base polish --

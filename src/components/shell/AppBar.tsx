@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useStore, type ViewMode } from "../../state/store";
+import { type ViewMode } from "../../state/store";
 
 interface AppBarProps {
   title: ReactNode;
@@ -20,42 +20,23 @@ function GearIcon() {
   );
 }
 
-function ModeSegmented({
-  value,
-  onChange,
-}: {
-  value: ViewMode;
-  onChange: (v: ViewMode) => void;
-}) {
-  const { theme } = useStore();
-  const options: { id: ViewMode; label: string }[] = [
-    { id: "beginner", label: "Beginner" },
-    { id: "expert", label: "Expert" },
-  ];
-  const shellClass =
-    theme === "dark"
-      ? "bg-white/15"
-      : "border border-[var(--color-appbar-border)] bg-raise";
-  const inactiveClass =
-    theme === "dark" ? "text-white/90 hover:bg-white/10" : "text-muted hover:bg-surface/80";
-
+function ModeToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
+  const isAdvanced = value === "expert";
   return (
-    <div className={`flex shrink-0 gap-1 rounded-xl p-1 ${shellClass}`}>
-      {options.map((o) => (
-        <button
-          key={o.id}
-          type="button"
-          onClick={() => onChange(o.id)}
-          className={`min-h-11 rounded-lg px-2.5 text-sm font-medium transition sm:px-3 ${
-            value === o.id
-              ? "bg-surface text-accent-ink shadow"
-              : inactiveClass
-          }`}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={() => onChange(isAdvanced ? "beginner" : "expert")}
+      aria-pressed={isAdvanced}
+      aria-label={isAdvanced ? "Advanced mode — tap to switch to Basic" : "Basic mode — tap to switch to Advanced"}
+      title={isAdvanced ? "Advanced mode — tap for Basic" : "Basic mode — tap for Advanced"}
+      className={`min-h-11 shrink-0 rounded-xl px-4 text-sm font-semibold shadow-sm transition ${
+        isAdvanced
+          ? "bg-[var(--color-mode-advanced-bg)] text-[var(--color-mode-advanced-ink)]"
+          : "bg-[var(--color-mode-basic-bg)] text-[var(--color-mode-basic-ink)]"
+      }`}
+    >
+      {isAdvanced ? "Advanced" : "Basic"}
+    </button>
   );
 }
 
@@ -96,7 +77,7 @@ export function AppBar({
           titleBlock
         )}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <ModeSegmented value={mode} onChange={onModeChange} />
+          <ModeToggle value={mode} onChange={onModeChange} />
           <button
             type="button"
             onClick={onSettings}

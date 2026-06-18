@@ -22,7 +22,7 @@ Pokémon UNITE players ranging from casual newcomers to competitive optimizers w
 ### Key Benefits
 
 - Accuracy-first stat engine that mirrors in-game stacking order, rounding, mitigation, RSB damage, and attack-speed frame logic.
-- Rich visual presentation (portraits, item/emblem icons) with Beginner vs Expert modes to balance simplicity and depth.
+- Rich visual presentation (portraits, item/emblem icons) with Basic vs Advanced modes to balance simplicity and depth.
 - Patchable game data via versioned JSON bundles—no code changes required for balance updates.
 - Offline-capable distribution options (PWA install, desktop installers with auto-update).
 
@@ -73,7 +73,7 @@ Formatting for display: `src/ui/format.ts` (`STAT_ROWS`, `formatStat`, `formatDe
 
 `owned`, `toggleOwned`, `bulkSetOwned` — emblem inventory.
 
-`mode` (`"beginner" | "expert"`), `setMode`, `expert` — complexity toggle.
+`mode` (`"beginner" | "expert"`), `setMode`, `expert` — complexity toggle (UI labels **Basic** / **Advanced**; stored values unchanged).
 
 `heldItemGrade(id)`, `setHeldItemGradeById(id, g)`, `heldSlotGrades`, `setHeldItemGradeForSlot(slot, g)` — held-item grades.
 
@@ -102,7 +102,7 @@ Move descriptions use the overlay pattern above: `scrape_serebii.py` writes `mov
 - Owned emblems are keyed per grade (Bronze/Silver/Gold) independently.
 - Held item grades (1–40) are global per item ID, not stored in saved builds or share links. Unique held items (`isUniqueHeldItem`) skip grade storage and controls entirely.
 - Share links encode loadout state in the URL hash (`#b=`).
-- Theme preference (`themePref`) and Beginner/Expert mode persist locally (`unite-build-optimizer.theme.v1`, `unite-build-optimizer.mode.v1`).
+- Theme preference (`themePref`) and Basic/Advanced mode (`beginner`/`expert` in storage) persist locally (`unite-build-optimizer.theme.v1`, `unite-build-optimizer.mode.v1`).
 - Collapsible card open state persists per section (`unite-build-optimizer.collapsed.{persistKey}`). First visit defaults: Builds, Held Items, and Effective Stats open; Moves, Save & Load, Combat Analytics, and Active Effects closed.
 - Active tab (`build` | `compare` | `emblems` | `items`) persists locally (`unite-build-optimizer.tab.v1`) for fast-resume on reload.
 
@@ -110,12 +110,12 @@ Move descriptions use the overlay pattern above: `scrape_serebii.py` writes `mov
 
 No router library — navigation is local React state.
 
-- **App bar** — fixed top bar (`AppBar` from `src/components/shell/`), gradient from `--color-appbar-*` tokens, `pt-safe`. On the Build tab: selected Pokémon portrait, name, role badge, and attack type (tappable — opens the Pokémon picker overlay). On other tabs: static screen title ("Emblems", "Held Items", "Compare"). Beginner/Expert segmented control and settings gear on all tabs.
-- **Tab bar** — fixed bottom navigation (`TabBar`): Build · Emblems · Items; Compare appears only in Expert mode (4 tabs vs 3). Switching from Expert to Beginner while on Compare redirects to Build.
-- **Build screen** — `BuildScreen` composes `BuildSummaryBar` (sticky glance hero pinned under the app bar), `RecommendPanel`, `LoadoutEditor`, `MovesCard`, `StatPanel`, `LoadoutBar`, and `LevelGraph` (Expert only). Pokémon selection is not inline; the hero empty state and app-bar title tap open `PokemonPickerSheet`.
+- **App bar** — fixed top bar (`AppBar` from `src/components/shell/`), gradient from `--color-appbar-*` tokens, `pt-safe`. On the Build tab: selected Pokémon portrait, name, role badge, and attack type (tappable — opens the Pokémon picker overlay). On other tabs: static screen title ("Emblems", "Held Items", "Compare"). Single **Basic**/**Advanced** mode toggle (`ModeToggle` in `AppBar.tsx` — shows current mode, tap flips; color-coded via `--color-mode-*` tokens) and settings gear on all tabs.
+- **Tab bar** — fixed bottom navigation (`TabBar`): Build · Emblems · Items; Compare appears only in Advanced mode (4 tabs vs 3). Switching from Advanced to Basic while on Compare redirects to Build.
+- **Build screen** — `BuildScreen` composes `BuildSummaryBar` (sticky glance hero pinned under the app bar), `RecommendPanel`, `LoadoutEditor`, `MovesCard`, `StatPanel`, `LoadoutBar`, and `LevelGraph` (Advanced only). Pokémon selection is not inline; the hero empty state and app-bar title tap open `PokemonPickerSheet`.
 - **Emblems screen** — `EmblemsScreen` renders `InventoryManager` (per-grade ownership, search, horizontal color chip filters, responsive emblem grid).
 - **Items screen** — `ItemsScreen` renders `HeldItemsInventory` (global held-item grades, 3-column tile grid on phones, `HeldItemDetailModal` on icon tap).
-- **Compare screen** — `CompareScreen` renders `CompareView` (Expert only; build A/B selects stack on phones; stat table scrolls horizontally inside its wrapper).
+- **Compare screen** — `CompareScreen` renders `CompareView` (Advanced only; build A/B selects stack on phones; stat table scrolls horizontally inside its wrapper).
 - **Layout** — single column, `max-w-2xl` centered, `gap-3` between sections. `<main>` padding clears the fixed app bar and tab bar (safe-area aware). Interactive controls target ≥44px hit areas (`min-h-11`); tappable labels use `text-sm` minimum — the Build glance hero (`BuildSummaryBar`) is the primary oversized readout.
 - **Overlays** — `BottomSheet` (`src/components/shell/BottomSheet.tsx`) is the shared responsive overlay (bottom sheet on phones, centered card on `sm+`). Callers: `SettingsMenu` (gear), `PokemonPickerSheet` (app-bar tap or hero empty state), and `PickerModal` (held/trainer/emblem pickers from `LoadoutEditor`). `HeldItemDetailModal` keeps its existing centered-modal shell.
 - **Footer** — legal disclaimer, copyright, and patch line live in Settings → Legal (sourced from `src/ui/brand.ts`); they are not rendered in `App.tsx`.
@@ -144,7 +144,7 @@ UI surfaces use Tailwind v4 semantic tokens defined in `src/index.css` (`bg-surf
 
 `SettingsMenu` → Appearance exposes a 3-way `System · Light · Dark` control bound to `themePref` / `setThemePref`.
 
-**Token families in `src/index.css`:** core surfaces (`--color-bg`, `--color-surface`, …), tone cards (`--color-rec-*`, `--color-as-*`, `--color-an-*`), picker tiles (`--color-mon-*`), grade controls (`--color-grade-*`), app-bar tokens (`--color-appbar-*`), tab-bar tokens (`--color-tab-*`). Safe-area helpers: `@utility pt-safe` / `pb-safe` via `env(safe-area-inset-*)`. Viewport meta includes `viewport-fit=cover` in `index.html`.
+**Token families in `src/index.css`:** core surfaces (`--color-bg`, `--color-surface`, …), tone cards (`--color-rec-*`, `--color-as-*`, `--color-an-*`), picker tiles (`--color-mon-*`), grade controls (`--color-grade-*`), app-bar tokens (`--color-appbar-*`), tab-bar tokens (`--color-tab-*`), mode-toggle pill (`--color-mode-basic-*`, `--color-mode-advanced-*`). Safe-area helpers: `@utility pt-safe` / `pb-safe` via `env(safe-area-inset-*)`. Viewport meta includes `viewport-fit=cover` in `index.html`.
 
 Branding constants: `src/ui/brand.ts`, `docs/08-branding.md`. Historical token rationale: `docs/06-theme-plan.md`.
 
@@ -224,7 +224,7 @@ Stat role colors (positive/negative, recommend/attack-speed/analytics tone cards
 
 Shared modal behavior (`Escape` + scroll lock): `src/ui/useModalDismiss.ts` (used inside `BottomSheet`). `BottomSheet` (`src/components/shell/BottomSheet.tsx`) is the shared responsive overlay primitive; callers are `SettingsMenu`, `PokemonPickerSheet`, and `PickerModal`.
 
-Mobile layout conventions: column spacing `gap-3`; `CollapsibleCard` headers `px-4 py-3` with `min-h-11` tap row; buttons, chips, tab items, segmented controls, picker tiles, sliders, and emblem grade dots use ≥44px hit areas. Section collapse uses `CollapsibleCard` (`src/components/CollapsibleCard.tsx`) — open state is per `persistKey`, not a global default.
+Mobile layout conventions: column spacing `gap-3`; `CollapsibleCard` headers `px-4 py-3` with `min-h-11` tap row; buttons, chips, tab items, the app-bar mode toggle, picker tiles, sliders, and emblem grade dots use ≥44px hit areas. Section collapse uses `CollapsibleCard` (`src/components/CollapsibleCard.tsx`) — open state is per `persistKey`, not a global default.
 
 ## Key Components
 
@@ -232,11 +232,11 @@ Mobile layout conventions: column spacing `gap-3`; `CollapsibleCard` headers `px
 | --- | --- |
 | App shell | `src/App.tsx` |
 | Shell primitives | `src/components/shell/AppBar.tsx`, `TabBar.tsx`, `BottomSheet.tsx` |
-| Build tab | `src/components/screens/BuildScreen.tsx` — `BuildSummaryBar`, `RecommendPanel`, `LoadoutEditor`, `MovesCard`, `StatPanel`, `LoadoutBar`, `LevelGraph` (Expert) |
+| Build tab | `src/components/screens/BuildScreen.tsx` — `BuildSummaryBar`, `RecommendPanel`, `LoadoutEditor`, `MovesCard`, `StatPanel`, `LoadoutBar`, `LevelGraph` (Advanced) |
 | Pokémon picker | `PokemonPickerSheet` in `src/components/PokemonPicker.tsx` (no inline picker on Build) |
 | Emblems tab | `src/components/screens/EmblemsScreen.tsx` → `InventoryManager` |
 | Items tab | `src/components/screens/ItemsScreen.tsx` → `HeldItemsInventory` (`HeldItemDetailModal`) |
-| Compare tab (Expert) | `src/components/screens/CompareScreen.tsx` → `CompareView` |
+| Compare tab (Advanced) | `src/components/screens/CompareScreen.tsx` → `CompareView` |
 | Pickers / settings | `PickerModal`, `SettingsMenu` (both use `BottomSheet`) |
 | Item detail | `src/ui/heldItemDetail.tsx` (`HeldItemDetailModal`) |
 | Tooltips | `src/components/Tooltip.tsx`, `src/components/tips.tsx` |
