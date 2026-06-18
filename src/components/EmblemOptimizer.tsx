@@ -765,25 +765,28 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
   // toggle), never the Expert full pool.
   const handleBasicSearch = useCallback(async () => {
     if (!pokemon || !basicObjective || basicPool.length < SLOTS) return;
-    // "exact" → keep the hard color constraints so the orchestrator enters
-    // Phase-2 exact enumeration. A time-based effort → forceHeuristic strips the
-    // constraints so the orchestrator deliberately skips exact and runs the
-    // heuristic at that effort, even when exact would be feasible.
+    // "exact" → keep hard color constraints for Phase-2 enumeration. A time-based
+    // effort strips constraints only when exact enumeration is actually feasible
+    // (user deliberately trades optimality for speed). When targets are feasible
+    // but over-cap, keep constraints so the heuristic enforces hard targets —
+    // same as Expert.
     const runExact = resolvedBasicEffort === "exact";
+    const userChoseHeuristicEffort = resolvedBasicEffort !== "exact";
+    const forceHeuristic = userChoseHeuristicEffort && (basicColorResolution?.willRunExact ?? false);
     const { options } = buildPresetSearchOptions({
       pokemon,
       level: optimizeLevel,
       pool: basicPool,
       emblems: allEmblems,
       pokemonList,
-      forceHeuristic: !runExact,
+      forceHeuristic,
     });
     // When exact is selected, the heuristic budget is only used if exact turns
     // out infeasible at runtime — pass a reasonable fallback. Otherwise use the
     // user's chosen time-based effort.
     const heuristicEffort: Effort = runExact ? EXACT_FALLBACK_EFFORT : resolvedBasicEffort;
     await run(basicPool, options, setBonuses, heuristicEffort);
-  }, [pokemon, basicObjective, basicPool, optimizeLevel, resolvedBasicEffort, run]);
+  }, [pokemon, basicObjective, basicPool, basicColorResolution, optimizeLevel, resolvedBasicEffort, run]);
 
   // Expert search (Expert tab only — pool source toggle applies here, not in Beginner)
   const handleAdvancedSearch = useCallback(async () => {
@@ -930,7 +933,9 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
               {basicObjective && basicObjective.colorTargets.size > 0 && (
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
                   <span className="text-xs text-faint">
-                    {basicWillRunExact ? "Target colors (enforced):" : "Target colors (soft):"}
+                    {basicColorResolution?.mode === "weighted"
+                      ? "Target colors (soft):"
+                      : "Target colors (enforced):"}
                   </span>
                   {[...basicObjective.colorTargets.entries()].map(([col, n]) => (
                     <span key={col} className="flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs">
@@ -945,9 +950,11 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                       title={
                         basicWillRunExact
                           ? "Color targets are feasible on this pool — the exact search exhaustively enumerates every matching build (guaranteed optimum)."
-                          : basicExactFeasible
-                            ? "Exact is available for this pool, but a time-based effort is selected — the search uses a heuristic guided by the color-bonus incentive. Pick \"Exact\" to enforce the targets."
-                            : "Color targets can't be enforced exactly on this pool — the search uses a heuristic guided by the color-bonus incentive."
+                          : basicColorResolution.mode === "exact" && !basicColorResolution.willRunExact
+                            ? "Color targets are enforced as hard constraints, but the matching build count exceeds the exact-enumeration cap — the search uses a heuristic that still respects those constraints."
+                            : basicExactFeasible
+                              ? "Exact is available for this pool, but a time-based effort is selected — the search uses a heuristic guided by the color-bonus incentive. Pick \"Exact\" to enforce the targets."
+                              : "Color targets can't be enforced exactly on this pool — the search uses a heuristic guided by the color-bonus incentive."
                       }
                     >
                       {basicWillRunExact ? "⚡ Exact search" : "~ Heuristic search"}

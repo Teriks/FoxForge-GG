@@ -126,6 +126,26 @@ describe("resolveColorSearchMode", () => {
     expect(res.mode).toBe("weighted");
     expect(res.colorConstraints).toBeNull();
   });
+
+  it("[PRE-12] feasible over-cap pool → exact mode, non-null constraints, willRunExact false", () => {
+    // Rich pool: many dual brown+white + singles so brown=6,white=6 is feasible
+    // but the constrained build count exceeds DEFAULT_EXACT_CAP.
+    const emblems = [
+      ...nOf(50, ["brown", "white"], "bw"),
+      ...nOf(30, ["brown"], "br"),
+      ...nOf(30, ["white"], "wh"),
+      ...nOf(20, ["green"], "gr"),
+    ];
+    const pool = buildCandidatePool(emblems, {});
+    const res = resolveColorSearchMode(pool, physicalTargets, SLOTS);
+
+    expect(res.mode).toBe("exact");
+    expect(res.colorConstraints).not.toBeNull();
+    expect(res.constrainedBuildCount).not.toBeNull();
+    expect(res.constrainedBuildCount! > 0n).toBe(true);
+    expect(res.constrainedBuildCount! > BigInt(DEFAULT_EXACT_CAP)).toBe(true);
+    expect(res.willRunExact).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -232,6 +252,59 @@ describe("buildPresetSearchOptions", () => {
 
     expect(resolution.willRunExact).toBe(false);
     expect(options.colorConstraints).toBeNull();
+  });
+
+  it("[PRE-13] Beginner wiring: forceHeuristic only when user chose heuristic AND willRunExact", () => {
+    const overCapEmblems = [
+      ...nOf(50, ["brown", "white"], "bw"),
+      ...nOf(30, ["brown"], "br"),
+      ...nOf(30, ["white"], "wh"),
+      ...nOf(20, ["green"], "gr"),
+    ];
+    const overCapPool = buildCandidatePool(overCapEmblems, {});
+    const resolution = resolveColorSearchMode(
+      overCapPool,
+      new Map<EmblemColor, number>([["brown", 6], ["white", 6]]),
+      SLOTS,
+    );
+    expect(resolution.willRunExact).toBe(false);
+
+    // Over-cap + user picked a time-based effort → do NOT strip constraints.
+    const userChoseHeuristicEffort = true;
+    const forceHeuristicOverCap = userChoseHeuristicEffort && resolution.willRunExact;
+    expect(forceHeuristicOverCap).toBe(false);
+
+    const { options: overCapOptions } = buildPresetSearchOptions({
+      pokemon,
+      level: 15,
+      pool: overCapPool,
+      emblems: overCapEmblems,
+      pokemonList: [],
+      forceHeuristic: forceHeuristicOverCap,
+    });
+    expect(overCapOptions.colorConstraints).not.toBeNull();
+    expect(overCapOptions.colorConstraints!.get("brown")).toBe(6);
+
+    // Feasible within cap + user picked time-based → strip constraints (PRE-8).
+    const feasiblePool = buildCandidatePool(feasibleEmblems, {});
+    const feasibleResolution = resolveColorSearchMode(
+      feasiblePool,
+      new Map<EmblemColor, number>([["brown", 6], ["white", 6]]),
+      SLOTS,
+    );
+    expect(feasibleResolution.willRunExact).toBe(true);
+    const forceHeuristicFeasible = userChoseHeuristicEffort && feasibleResolution.willRunExact;
+    expect(forceHeuristicFeasible).toBe(true);
+
+    const { options: feasibleOptions } = buildPresetSearchOptions({
+      pokemon,
+      level: 15,
+      pool: feasiblePool,
+      emblems: feasibleEmblems,
+      pokemonList: [],
+      forceHeuristic: forceHeuristicFeasible,
+    });
+    expect(feasibleOptions.colorConstraints).toBeNull();
   });
 });
 

@@ -119,9 +119,11 @@ export interface BuildPresetParams {
   /**
    * When true, deliberately strip the hard color constraints so the
    * orchestrator skips Phase-2 exact enumeration and runs the heuristic at the
-   * chosen effort instead — even when the meta targets are feasible (i.e. exact
-   * is possible). The soft color-bonus incentive (colorBonuses) still steers the
-   * heuristic toward the meta colors. Defaults to false (exact whenever feasible).
+   * chosen effort instead — only when the user picked a time-based effort AND
+   * exact enumeration is actually feasible (within cap). When targets are
+   * feasible but over-cap, callers should pass false so the heuristic still
+   * enforces hard constraints. The soft color-bonus incentive (colorBonuses)
+   * steers the heuristic when constraints are stripped. Defaults to false.
    */
   forceHeuristic?: boolean;
 }
@@ -148,8 +150,9 @@ export function buildPresetSearchOptions(params: BuildPresetParams): PresetSearc
   const targets = objective.colorTargets as Map<EmblemColor, number>;
   const resolution = resolveColorSearchMode(pool, targets, SLOTS);
 
-  // forceHeuristic drops the hard constraints so the orchestrator goes to the
-  // heuristic path even when exact is feasible; colorBonuses still steers softly.
+  // forceHeuristic drops hard constraints only when the caller signals the user
+  // deliberately skipped exact while enumeration was feasible; colorBonuses
+  // still steers softly when constraints are stripped.
   const colorConstraints = forceHeuristic ? null : resolution.colorConstraints;
 
   const options: SearchOptions = {
