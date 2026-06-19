@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { SearchResult } from "../../engine/emblemSearch/types";
 import {
+  appendSearchHistoryEntries,
   buildSearchSettingsKey,
+  clampResultCount,
   getEmblemSearchSessionState,
   getSessionSearchSettingsKey,
+  mapMultiRunProgress,
   persistSessionSearchSettings,
   resetEmblemSearchSession,
   SearchRunCoordinator,
@@ -60,6 +63,7 @@ const BASE: EmblemSearchSettingsSnapshot = {
   activeColors: [],
   colorCounts: {},
   ownedKeys: ["001-bulbasaur:gold"],
+  resultCount: 1,
 };
 
 const MOCK_RESULT = {
@@ -76,6 +80,8 @@ const DONE_STATE: EmblemSearchState = {
   eta: null,
   result: MOCK_RESULT,
   errorMsg: null,
+  history: [{ result: MOCK_RESULT, settingsKey: "test-key" }],
+  historyIndex: 0,
 };
 
 describe("buildSearchSettingsKey", () => {
@@ -96,6 +102,37 @@ describe("buildSearchSettingsKey", () => {
     expect(buildSearchSettingsKey({ ...BASE, effort: "thorough" })).not.toBe(base);
     expect(buildSearchSettingsKey({ ...BASE, mode: "target" })).not.toBe(base);
     expect(buildSearchSettingsKey({ ...BASE, ownedKeys: ["002-ivysaur:silver"] })).not.toBe(base);
+    expect(buildSearchSettingsKey({ ...BASE, resultCount: 3 })).not.toBe(base);
+  });
+});
+
+describe("multi-result helpers", () => {
+  it("clampResultCount bounds to 1–99", () => {
+    expect(clampResultCount(0)).toBe(1);
+    expect(clampResultCount(3)).toBe(3);
+    expect(clampResultCount(99)).toBe(99);
+    expect(clampResultCount(100)).toBe(99);
+    expect(clampResultCount(Number.NaN)).toBe(1);
+  });
+
+  it("mapMultiRunProgress prefixes batch index for smart search", () => {
+    const mapped = mapMultiRunProgress(2, 5, { pct: 50, label: "Smart search…" });
+    expect(mapped.label).toBe("Smart search 2/5…");
+    expect(mapped.pct).toBeGreaterThan(20);
+    expect(mapped.pct).toBeLessThan(40);
+  });
+
+  it("appendSearchHistoryEntries stacks multiple results", () => {
+    const key = buildSearchSettingsKey(BASE);
+    const first = { ...MOCK_RESULT, score: 1 };
+    const second = { ...MOCK_RESULT, score: 2 };
+    const { history, historyIndex } = appendSearchHistoryEntries(
+      [{ result: first, settingsKey: key }],
+      [{ result: second, settingsKey: key }],
+    );
+    expect(history).toHaveLength(2);
+    expect(historyIndex).toBe(0);
+    expect(history[0]?.result.score).toBe(1);
   });
 });
 
@@ -104,33 +141,61 @@ describe("session cache", () => {
     resetEmblemSearchSession();
   });
 
-  it("stores and reads a completed search result", () => {
+  it("stores and reads a completed search result with history", () => {
     const key = buildSearchSettingsKey(BASE);
-    seedEmblemSearchSession(DONE_STATE, key);
+    const state: EmblemSearchState = {
+      ...DONE_STATE,
+      history: [{ result: MOCK_RESULT, settingsKey: key }],
+    };
+    seedEmblemSearchSession(state, key);
 
-    expect(getEmblemSearchSessionState()).toEqual(DONE_STATE);
+    expect(getEmblemSearchSessionState()).toEqual(state);
     expect(getSessionSearchSettingsKey()).toBe(key);
   });
 
-  it("updates the settings fingerprint after completion", () => {
-    seedEmblemSearchSession(DONE_STATE, null);
+  it("updates the settings fingerprint for the viewed history entry", () => {
+    seedEmblemSearchSession(DONE_STATE, "initial");
     const key = buildSearchSettingsKey({ ...BASE, effort: "thorough" });
 
     persistSessionSearchSettings(key);
 
     expect(getSessionSearchSettingsKey()).toBe(key);
+    expect(getEmblemSearchSessionState()?.history[0]?.settingsKey).toBe(key);
     expect(getEmblemSearchSessionState()?.result).toBe(MOCK_RESULT);
   });
 
-  it("simulated remount baseline uses cached key instead of default remount settings", () => {
+  it("simulated remount baseline uses cached history entry key", () => {
     const searchKey = buildSearchSettingsKey({ ...BASE, effort: "thorough", basicUseOwned: false });
     const remountDefaultsKey = buildSearchSettingsKey(BASE);
+    const state: EmblemSearchState = {
+      ...DONE_STATE,
+      history: [{ result: MOCK_RESULT, settingsKey: searchKey }],
+    };
 
-    seedEmblemSearchSession(DONE_STATE, searchKey);
+    seedEmblemSearchSession(state, searchKey);
 
     const remountBaseline = getSessionSearchSettingsKey() ?? remountDefaultsKey;
     expect(remountBaseline).toBe(searchKey);
     expect(remountBaseline).not.toBe(remountDefaultsKey);
+  });
+
+  it("seeds legacy single-result state into a one-entry history stack", () => {
+    const key = buildSearchSettingsKey(BASE);
+    const legacy: EmblemSearchState = {
+      status: "done",
+      progress: { pct: 100, label: "Done" },
+      eta: null,
+      result: MOCK_RESULT,
+      errorMsg: null,
+      history: [],
+      historyIndex: -1,
+    };
+    seedEmblemSearchSession(legacy, key);
+
+    const cached = getEmblemSearchSessionState();
+    expect(cached?.history).toHaveLength(1);
+    expect(cached?.history[0]?.settingsKey).toBe(key);
+    expect(cached?.historyIndex).toBe(0);
   });
 
   it("clears session on reset", () => {
