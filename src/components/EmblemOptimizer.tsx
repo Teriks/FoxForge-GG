@@ -12,7 +12,7 @@
  *    lives only in Expert mode.
  *    Held-item suggestions consider the full held-item set (same as Expert);
  *    held-item grades still drive stat math but no longer gate suggestions.
- *    Shows results: emblem icons, active set bonuses, effective-stat delta,
+ *    Shows results: emblem icons, emblem set summary, effective-stat delta,
  *    recommended held items, and Apply buttons.
  *
  *  EXPERT
@@ -28,6 +28,7 @@ import {
   emblems as allEmblems,
   heldItems as allHeldItems,
   heldItemById,
+  emblemById,
   setBonuses,
   pokemonById,
   pokemonList,
@@ -73,7 +74,8 @@ import { Segmented } from "./Segmented";
 import { EmblemSetSummary } from "./EmblemSetSummary";
 import { SearchProgressOverlay } from "./SearchProgressOverlay";
 import { Tooltip } from "./Tooltip";
-import { EMBLEM_COLOR_HEX } from "../ui/colors";
+import { emblemTip } from "./tips";
+import { EMBLEM_COLOR_HEX, GRADE_LETTER } from "../ui/colors";
 import { emblemIconForGrade } from "../ui/emblemIcon";
 import { asset } from "../ui/asset";
 
@@ -92,7 +94,7 @@ const WEIGHT_UI_MAX = 5;
 // Friendly labels for the internal search-phase tag (avoids surfacing the word
 // "heuristic", which testers found confusing).
 const PHASE_LABEL: Record<string, string> = {
-  recipe: "exact match",
+  recipe: "recipe match",
   exact: "exact search",
   heuristic: "smart search",
   none: "search",
@@ -154,6 +156,27 @@ function fmtDelta(stat: keyof StatBlock, delta: number): string {
   return `${delta >= 0 ? "+" : ""}${delta % 1 === 0 ? delta : delta.toFixed(1)}`;
 }
 
+/** Inline estimate under a priority slider — sign is color-coded for quick scanning. */
+function PriorityFlatEstimate({ stat, pred }: { stat: keyof StatBlock; pred?: FlatStatPrediction }) {
+  if (stat === "cdr") {
+    return <span className="text-faint">from black set bonus, not flat emblems</span>;
+  }
+  if (!pred) {
+    return <span className="text-faint">no priority</span>;
+  }
+  const v = pred.predicted;
+  const signClass = v > 0 ? "text-pos" : v < 0 ? "text-neg" : "text-muted";
+  return (
+    <>
+      <span className="text-faint">≈ </span>
+      <span className={`font-mono font-semibold tabular-nums ${signClass}`}>
+        {fmtDelta(stat, v)}
+      </span>
+      <span className="text-faint"> flat from emblems</span>
+    </>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Shared result panels (used by both Beginner and Expert)
 // ---------------------------------------------------------------------------
@@ -182,7 +205,6 @@ interface ResultPanelProps {
 
 interface EffectiveDelta {
   delta: Partial<Record<keyof StatBlock, number>>;
-  activeSetBonuses: { color: string; bonusPercent: number }[];
 }
 
 function ResultCards({
@@ -213,57 +235,58 @@ function ResultCards({
             </div>
           )}
 
-          {/* Emblem icons row */}
-          <div className="flex flex-wrap gap-1.5">
-            {picks.map((p, i) => (
-              <div key={i} className="flex flex-col items-center gap-0.5">
-                <img
-                  src={asset(emblemIconForGrade({ id: p.emblemId }, p.grade))}
-                  alt={p.emblemId}
-                  className="h-9 w-9 rounded-lg ring-1 ring-line"
-                  title={`${p.emblemId} (${p.grade})`}
-                />
-              </div>
-            ))}
+          {/* Emblem icons row — same size + tooltip pattern as the build page */}
+          <div className="flex flex-wrap gap-1">
+            {picks.map((p, i) => {
+              const emblem = emblemById.get(p.emblemId);
+              if (!emblem) return null;
+              return (
+                <Tooltip key={i} content={emblemTip(emblem, p.grade)}>
+                  <span className="relative inline-block">
+                    <img
+                      src={asset(emblemIconForGrade(emblem, p.grade))}
+                      alt={emblem.pokemonName}
+                      className="h-16 w-16 object-contain"
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 rounded bg-neutral-800 px-0.5 text-[9px] font-bold text-white">
+                      {GRADE_LETTER[p.grade]}
+                    </span>
+                    <span className="absolute -left-1 -top-1 flex gap-0.5">
+                      {emblem.colors.map((c) => (
+                        <span
+                          key={c}
+                          className="h-2.5 w-2.5 rounded-full ring-1 ring-white"
+                          style={{ background: EMBLEM_COLOR_HEX[c] }}
+                        />
+                      ))}
+                    </span>
+                  </span>
+                </Tooltip>
+              );
+            })}
           </div>
 
           <EmblemSetSummary picks={picks} />
 
-          {/* Active set bonuses */}
-          {effectiveDelta && effectiveDelta.activeSetBonuses.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {effectiveDelta.activeSetBonuses.map((b) => (
-                <span
-                  key={b.color}
-                  className="flex items-center gap-1 rounded-full border border-line bg-white/10 px-2 py-0.5 text-xs font-medium"
-                >
-                  <ColorDot color={b.color as EmblemColor} />
-                  <span className="capitalize">{b.color}</span>
-                  <span className="font-mono text-pos">+{(b.bonusPercent * 100).toFixed(0)}%</span>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Effective-stat delta */}
+          {/* Effective-stat delta — layout matches build Effective Stats panel */}
           {effectiveDelta && Object.keys(effectiveDelta.delta).length > 0 && pokemon && (
             <div>
-              <p className="mb-1.5 text-xs font-medium text-faint">
+              <p className="mb-2 text-xs font-medium text-faint">
                 Stat gains at {pokemon.displayName} Lv.{optimizeLevel}
                 {pokemonAwareScoring && <span className="ml-1 text-accent-ink">· Pokémon-aware</span>}
               </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-0 sm:grid-cols-3">
                 {(Object.entries(effectiveDelta.delta) as [keyof StatBlock, number][])
                   .filter(([k]) => STAT_LABELS[k])
                   .map(([stat, delta]) => (
-                    <div key={stat} className="flex items-center justify-between gap-1">
-                      <span className="text-muted">{STAT_LABELS[stat]}</span>
-                      <span className={`font-mono font-semibold ${delta >= 0 ? "text-pos" : "text-neg"}`}>
+                    <div key={stat} className="flex items-baseline justify-between border-b border-line-soft py-1">
+                      <dt className="text-sm text-muted">{STAT_LABELS[stat]}</dt>
+                      <dd className={`font-mono text-sm font-semibold ${delta >= 0 ? "text-pos" : "text-neg"}`}>
                         {fmtDelta(stat, delta)}
-                      </span>
+                      </dd>
                     </div>
                   ))}
-              </div>
+              </dl>
             </div>
           )}
 
@@ -336,7 +359,7 @@ function ResultCards({
                       <span className="max-w-[60px] text-center text-[10px] leading-tight text-muted">
                         {item.displayName}
                       </span>
-                      <span className="max-w-[60px] text-center text-[10px] leading-tight text-faint">
+                      <span className="max-w-[72px] text-center text-xs leading-snug text-faint">
                         {sug.reason}
                       </span>
                     </div>
@@ -352,7 +375,7 @@ function ResultCards({
               >
                 {applied.items ? "Applied ✓ — Re-apply Held Items" : "Apply Held Items"}
               </button>
-              <span className="text-[10px] text-faint">
+              <span className="text-xs text-faint">
                 Held items only — your applied emblems are left untouched.
               </span>
             </div>
@@ -952,7 +975,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
         if (Math.abs(d) > 0.005) delta[key] = d;
       }
 
-      return { delta, activeSetBonuses: emblemLoadout.activeSetBonuses };
+      return { delta };
     } catch {
       return null;
     }
@@ -1219,7 +1242,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                   <span>
                     Mixed grades{" "}
                     <span className="text-xs text-faint">
-                      — combine Bronze/Silver/Gold across the 10 slots (recommended)
+                      — Bronze, Silver, and Gold can differ across the 10 slots (recommended)
                     </span>
                   </span>
                 </label>
@@ -1256,7 +1279,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                 return (
                   <div className="flex flex-col gap-2 rounded-lg bg-white/10 px-3 py-2.5 text-xs">
                     <div className="flex items-baseline justify-between gap-3">
-                      <span className="shrink-0 text-muted">{colorExact ? "Color-valid builds" : "Possible builds"}</span>
+                      <span className="shrink-0 text-muted">{colorExact ? "Matching builds" : "Possible builds"}</span>
                       <span className={`min-w-0 text-right font-mono font-semibold ${matchesZero ? "text-neg" : "text-ink"}`}>
                         {colorExact
                           ? constrainedBuildCount === null
@@ -1279,23 +1302,23 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                       <div className="flex items-center justify-between gap-3">
                         <span className="shrink-0 text-muted">Method</span>
                         <span
-                          className={`shrink-0 rounded-full bg-raise px-2 py-0.5 text-[11px] font-semibold ${
+                          className={`shrink-0 rounded-full bg-raise px-2 py-0.5 text-xs font-semibold ${
                             willRunExact ? "text-pos" : "text-accent-ink"
                           }`}
                           title={
                             willRunExact
-                              ? `Checks all ${formatBuildCount(constrainedBuildCount)} color-valid builds — guaranteed best`
-                              : `${formatBuildCount(constrainedBuildCount)} builds exceeds the cap of ${formatBuildCount(BigInt(exactCap))} — finds a near-best build`
+                              ? `Checks all ${formatBuildCount(constrainedBuildCount)} matching builds — guaranteed best`
+                              : `${formatBuildCount(constrainedBuildCount)} builds exceeds the cap — smart search finds a strong result`
                           }
                         >
-                          {willRunExact ? "⚡ Exact · best" : "≈ Smart · near-best"}
+                          {willRunExact ? "⚡ Exact" : "≈ Smart search"}
                         </span>
                       </div>
                     )}
 
                     {matchesZero && (
-                      <p className="text-[10px] text-neg">
-                        No combination hits these exact color counts — adjust the color targets below.
+                      <p className="text-xs text-neg">
+                        No builds match these exact color counts — adjust targets below or expand the pool.
                       </p>
                     )}
                   </div>
@@ -1318,8 +1341,8 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                 />
                 <p className="text-xs text-muted">
                   {mode === "maximize"
-                    ? "Finds the build that scores highest on your priority stats (role-weighted or custom weights). Adjust Stat Priorities below."
-                    : "Finds a build that hits the stat values you set, penalizing any shortfall. Enable stats and enter targets in Stat Targets below."}
+                    ? "Score builds by your priority stats. Adjust weights in Stat Priorities below."
+                    : "Find a build close to the flat stat totals you set in Stat Targets below."}
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -1331,6 +1354,13 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                   labels={{ quick: "Quick", normal: "Normal", thorough: "Thorough" }}
                   onChange={setEffort}
                 />
+                <p className="text-xs text-faint">
+                  {effort === "quick"
+                    ? "Quick pass (~2s)."
+                    : effort === "thorough"
+                      ? "Longer search (~25s)."
+                      : "Default balance (~8s)."}
+                </p>
               </div>
 
               {/* Level control */}
@@ -1356,7 +1386,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                       onChange={(e) => setColorBonuses(e.target.checked)}
                       className="accent-accent"
                     />
-                    <span>Include color set-bonus incentive in score</span>
+                    <span>Include color set-bonus scoring</span>
                   </label>
                   <label className={`flex cursor-pointer items-center gap-2 text-sm ${!pokemon ? "opacity-50" : ""}`}>
                     <input
@@ -1381,12 +1411,12 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs text-muted" htmlFor="adv-exact-cap">
-                    Max builds to check before switching to smart search
+                    Max builds before switching to smart search
                   </label>
                   {exactCap !== DEFAULT_EXACT_CAP && (
                     <button
                       onClick={() => setExactCap(DEFAULT_EXACT_CAP)}
-                      className="text-[10px] text-faint underline hover:text-muted"
+                      className="text-xs text-faint underline hover:text-muted"
                     >
                       reset to 1B
                     </button>
@@ -1410,14 +1440,13 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                     }}
                     className="w-40 rounded bg-surface px-2 py-1 font-mono text-xs text-ink ring-1 ring-line focus:outline-none focus:ring-accent"
                   />
-                  <span className="text-[10px] text-faint">
-                    {exactCap.toLocaleString()} — {colorMode === "exact" && willRunExact ? "⚡ exact" : colorMode === "exact" ? "≈ smart search" : "n/a"}
+                  <span className="text-xs text-faint">
+                    {exactCap.toLocaleString()} — {colorMode === "exact" && willRunExact ? "exact" : colorMode === "exact" ? "smart search" : ""}
                   </span>
                 </div>
-                <p className="text-[10px] text-faint">
-                  When the matching build count is ≤ this cap, the search checks every
-                  valid combination (guaranteed best). Above it, a faster smart search
-                  finds a near-best build. Default: {DEFAULT_EXACT_CAP.toLocaleString()}.
+                <p className="text-xs text-faint">
+                  Below this cap, every valid build is checked (guaranteed best). Above it,
+                  smart search still finds a strong result. Default: {DEFAULT_EXACT_CAP.toLocaleString()}.
                 </p>
               </div>
               )}
@@ -1429,7 +1458,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
             <div className="flex flex-col gap-3">
               {/* Mode selector */}
               <div className="flex flex-col gap-1">
-                <span className="text-xs text-faint">Color control mode</span>
+                <span className="text-xs text-faint">Color mode</span>
                 <Segmented<ColorMode>
                   fluid
                   value={colorMode}
@@ -1442,9 +1471,9 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
               {/* Weighted mode description */}
               {colorMode === "weighted" && (
                 <p className="text-xs text-muted">
-                  The search is softly steered toward high color set-bonus tiers via incentive
-                  scoring — no build is rejected. Color bonus incentive is forced on.
-                  Use <strong>Exact</strong> to require specific per-color counts.
+                  Steers the search toward higher set-bonus tiers without rejecting builds.
+                  Set-bonus scoring is always on in this mode. Use <strong>Exact</strong> to
+                  require specific per-color counts.
                 </p>
               )}
 
@@ -1490,7 +1519,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                     <p className="text-xs text-neg">
                       {totalColorConstrained > 2 * SLOTS
                         ? `Color-point sum ${totalColorConstrained} exceeds ${2 * SLOTS} (max for ${SLOTS} dual-color emblems).`
-                        : "A color count exceeds what the current pool can provide — reduce it or expand the pool."}
+                        : "A color count exceeds what the pool can provide — lower it or expand the pool."}
                     </p>
                   )}
                   {colorMode === "exact" && colorConstraintValid && totalColorConstrained > 0 && (
@@ -1503,7 +1532,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                   {/* Weighted-mode preview note */}
                   {colorMode === "weighted" && activeColors.size > 0 && (
                     <p className="text-xs text-faint">
-                      Counts shown for reference — the search uses bonus incentive scoring, not hard constraints.
+                      Counts are for reference — scoring uses set-bonus incentive, not hard constraints.
                     </p>
                   )}
 
@@ -1511,7 +1540,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                   {colorBonusPreviews.length > 0 && (
                     <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-white/5 p-2">
                       <span className="text-[10px] font-medium uppercase tracking-wide text-faint">
-                        Proposed bonuses
+                        Set bonus preview
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {colorBonusPreviews.map((b) => {
@@ -1531,7 +1560,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                             <span
                               key={b.color}
                               title={`${b.color} ×${b.count} → Tier ${b.tier}`}
-                              className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-ink"
+                              className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-xs text-ink"
                             >
                               <ColorDot color={b.color} />
                               <span className="capitalize">{b.color}</span>
@@ -1547,42 +1576,42 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                         })}
                       </div>
                       {pokemon && (
-                        <span className="text-[10px] text-faint">
-                          Concrete values based on {pokemon.displayName} at level {optimizeLevel}.
+                        <span className="text-xs text-faint">
+                          Based on {pokemon.displayName} at level {optimizeLevel}.
                         </span>
                       )}
                     </div>
                   )}
                   {activeColors.size > 0 && colorBonusPreviews.length === 0 && (
-                    <p className="text-[11px] text-faint">
-                      Proposed bonuses: none — these counts don't reach a color tier.
+                    <p className="text-xs text-faint">
+                      No set-bonus tier reached at these counts.
                     </p>
                   )}
 
                   {/* ── Affected pool size ───────────────────────────────── */}
                   {colorMode === "exact" && colorConstraintValid && (
-                    <div className="text-[11px] text-muted">
+                    <div className="text-xs text-muted">
                       {constrainedBuildCount === null
-                        ? "Matching builds in pool: too many to count."
+                        ? "Matching builds: too many to count."
                         : constrainedBuildCount === 0n
-                        ? <span className="text-neg">Matching builds in pool: 0 — no combination hits these exact counts.</span>
+                        ? <span className="text-neg">Matching builds: 0 — no combination hits these exact counts.</span>
                         : <>
-                            Matching builds in pool:{" "}
+                            Matching builds:{" "}
                             <span className="font-medium text-ink">
                               {formatBuildCount(constrainedBuildCount)}
                             </span>{" "}
                             {willRunExact
-                              ? <span className="text-pos">⚡ exact search</span>
-                              : <span className="text-muted">≈ smart search (above cap)</span>}
+                              ? <span className="text-pos">· exact search</span>
+                              : <span className="text-muted">· smart search (above cap)</span>}
                           </>
                       }
                     </div>
                   )}
                   {colorMode === "weighted" && activeColors.size > 0 && (
-                    <div className="text-[11px] text-muted">
-                      Pool size (unconstrained):{" "}
+                    <div className="text-xs text-muted">
+                      Pool size:{" "}
                       <span className="font-medium text-ink">{formatBuildCount(buildCount)}</span>{" "}
-                      builds — color bonuses steer scoring, not the feasible set.
+                      builds — colors affect scoring, not which builds are allowed.
                     </div>
                   )}
                 </>
@@ -1596,7 +1625,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
               <div className="flex flex-col gap-2">
                 <p className="text-xs text-faint">
                   {pokemon
-                    ? `Auto-generated from ${pokemon.displayName}'s role. Drag a slider to change priorities — the predicted flat emblem stats update below each one.`
+                    ? `Auto-filled from ${pokemon.displayName}'s role. Adjust sliders to reprioritize — predicted flat stats update below each one.`
                     : "Select a Pokémon to auto-populate weights."}
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1605,9 +1634,9 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                     const uiValue = Math.min(1, w / WEIGHT_UI_MAX);
                     const pred = flatStatPredictionByStat.get(stat as keyof StatBlock);
                     return (
-                      <div key={stat} className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="w-24 text-muted">{label}</span>
+                      <div key={stat} className="flex flex-col gap-0">
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="w-24 shrink-0 text-muted">{label}</span>
                           <input
                             type="range" min={0} max={1} step={0.1}
                             value={uiValue}
@@ -1617,23 +1646,19 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                                 [stat]: parseFloat(e.target.value) * WEIGHT_UI_MAX,
                               }))
                             }
-                            className="flex-1 accent-accent"
+                            className="min-w-0 flex-1 accent-accent"
                           />
-                          <span className="w-8 text-right font-mono text-ink">{uiValue.toFixed(1)}</span>
+                          <span className="w-6 shrink-0 text-right font-mono text-ink tabular-nums">{uiValue.toFixed(1)}</span>
                         </div>
-                        <span className="pl-[6.5rem] text-[10px] text-faint">
-                          {stat === "cdr"
-                            ? "from the black set bonus, not flat emblems"
-                            : pred
-                              ? `≈ ${fmtDelta(stat as keyof StatBlock, pred.predicted)} flat from emblems`
-                              : "no priority"}
+                        <span className="pl-24 text-xs leading-tight">
+                          <PriorityFlatEstimate stat={stat as keyof StatBlock} pred={pred} />
                         </span>
                       </div>
                     );
                   })}
                 </div>
-                <p className="text-[10px] text-faint">
-                  Estimated flat emblem stats your current priorities are likely to produce on this pool.
+                <p className="text-xs text-faint">
+                  Estimated flat emblem totals for the current priorities on this pool.
                 </p>
                 <button
                   onClick={() => setCustomWeights({})}
@@ -1649,7 +1674,9 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
           {mode === "target" && (
             <CollapsibleCard title="Stat Targets" persistKey="optimizer-targets">
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-faint">Enter desired flat stat totals from emblems.</p>
+                <p className="text-xs text-faint">
+                  Enable stats and enter target flat totals from emblems.
+                </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {Object.entries(STAT_LABELS).map(([stat, label]) => (
                     <div key={stat} className="flex items-center gap-2 text-xs">
@@ -1681,12 +1708,11 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
           <CollapsibleCard title="Protect Stats" persistKey="optimizer-protect" defaultOpen={false}>
             <div className="flex flex-col gap-2">
               <p className="text-xs text-faint">
-                Penalise builds where the total flat emblem contribution to a stat falls below
-                the floor. Floor&nbsp;=&nbsp;0 (default) means "don't let emblems net-reduce
-                this stat" — e.g. prevents pink emblems from eroding HP if HP is protected.
+                Penalize builds where emblem flat totals fall below the floor. Floor&nbsp;0 means
+                don't let emblems net-reduce the stat — e.g. blocks HP-negative picks when HP is protected.
                 {pokemon && Object.keys(floorActive).some((k) => floorActive[k]) && (
                   <span className="ml-1 text-accent-ink">
-                    Auto-filled from stats and role for {pokemon.displayName} — adjust freely.
+                    Auto-filled for {pokemon.displayName} — adjust as needed.
                   </span>
                 )}
               </p>
@@ -1722,7 +1748,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
                 onClick={() => { setFloorActive({}); setFloorValues({}); }}
                 className="self-start text-xs text-muted underline hover:text-ink"
               >
-                Clear all protect floors
+                Clear protect floors
               </button>
             </div>
           </CollapsibleCard>
@@ -1741,7 +1767,7 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
               disabled={!pokemon || searchState.status === "running"}
               className="rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-accent-ink hover:bg-accent-weak active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              ↺ Reset to auto defaults
+              ↺ Reset to defaults
             </button>
             {pool.length < SLOTS && (
               <span className="text-xs text-neg">
@@ -1753,7 +1779,9 @@ export function EmblemOptimizer({ onNavigate }: { onNavigate?: (page: string) =>
             )}
             {searchState.status === "done" && searchState.result && (
               <span className="text-xs text-muted">
-                Found via <strong>{PHASE_LABEL[searchState.result.phase] ?? searchState.result.phase}</strong> · {searchState.result.candidates.toLocaleString()} candidates · {(searchState.result.totalMs / 1000).toFixed(1)}s
+                {PHASE_LABEL[searchState.result.phase] ?? searchState.result.phase}
+                {" · "}{searchState.result.candidates.toLocaleString()} evaluated
+                {" · "}{(searchState.result.totalMs / 1000).toFixed(1)}s
               </span>
             )}
             {searchState.status === "error" && (
