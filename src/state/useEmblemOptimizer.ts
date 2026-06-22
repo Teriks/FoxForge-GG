@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store";
 import type { EmblemPick } from "./loadout";
 import { emblems as allEmblems, setBonuses, pokemonById, pokemonList } from "../data/gameData";
@@ -25,7 +25,9 @@ import {
 } from "../engine/emblemSearch/basicObjective";
 import {
   buildPresetSearchOptions,
+  colorTargetsFromUi,
   deriveAdvancedColorUiDefaults,
+  isExactColorModeFeasible,
   resolveBasicSearchParams,
   resolveColorSearchMode,
   type BasicEffort,
@@ -244,6 +246,19 @@ export function useEmblemOptimizer(): {
     return proposedColorBonuses(counts, setBonuses);
   }, [colorMode, activeColors, colorCounts]);
 
+  /** Whether hard exact color constraints are achievable on the current pool. */
+  const exactColorModeFeasible = useMemo(() => {
+    let targets = colorTargetsFromUi(activeColors, colorCounts);
+    if (targets.size === 0 && pokemon) {
+      const defaults = deriveAdvancedColorUiDefaults(pokemon, pool, allEmblems);
+      targets = new Map(
+        defaults.activeColors.map((c) => [c, defaults.colorCounts.get(c) ?? 0] as const),
+      );
+    }
+    if (targets.size === 0) return false;
+    return isExactColorModeFeasible(pool, targets, SLOTS, enumerateGradeVariants);
+  }, [activeColors, colorCounts, pokemon, pool, enumerateGradeVariants]);
+
   const advancedSearchOptions: SearchOptions = useMemo(
     () => ({
       mode,
@@ -390,18 +405,94 @@ export function useEmblemOptimizer(): {
     applyEmblemsToLoadout(resultPicks ?? []);
   }, [applyEmblemsToLoadout, resultPicks]);
 
-  const applyAdvancedColorDefaults = useCallback(
-    (targetPool: typeof pool) => {
-      const defaults = deriveAdvancedColorUiDefaults(pokemon, targetPool, allEmblems);
-      setColorMode(defaults.colorMode);
-      setActiveColors(new Set(defaults.activeColors));
-      setColorCounts(
-        Object.fromEntries(
-          POSITIVE_COLORS.map((c) => [c, defaults.colorCounts.get(c) ?? 0]),
-        ) as Record<EmblemColor, number>,
-      );
+  const loadoutPokemonIdRef = useRef(loadout.pokemonId);
+  loadoutPokemonIdRef.current = loadout.pokemonId;
+  const activeColorsRef = useRef(activeColors);
+  activeColorsRef.current = activeColors;
+  const colorCountsRef = useRef(colorCounts);
+  colorCountsRef.current = colorCounts;
+  const colorModeRef = useRef(colorMode);
+  colorModeRef.current = colorMode;
+  const enumerateGradeVariantsRef = useRef(enumerateGradeVariants);
+  enumerateGradeVariantsRef.current = enumerateGradeVariants;
+  /** User chose Weighted while Exact was available — blocks pool-driven auto-upgrade. */
+  const userPinnedWeightedRef = useRef(false);
+  const exactColorModeFeasibleRef = useRef(false);
+  /** Previous pool exact-feasibility for the current color targets (pool effect only). */
+  const prevExactFeasibleRef = useRef<boolean | null>(null);
+  // Refs so pokemon-change reset uses the latest pool/level without re-binding when
+  // owned/full or grade filters change (those must never trigger a settings reset).
+  const poolConfigRef = useRef(poolConfig);
+  const ownedRef = useRef(owned);
+  const optimizeLevelRef = useRef(optimizeLevel);
+  poolConfigRef.current = poolConfig;
+  ownedRef.current = owned;
+  optimizeLevelRef.current = optimizeLevel;
+  exactColorModeFeasibleRef.current = exactColorModeFeasible;
+
+  const applyAdvancedColorDefaults = useCallback((targetPool: typeof pool) => {
+    const p = loadoutPokemonIdRef.current
+      ? (pokemonById.get(loadoutPokemonIdRef.current) ?? null)
+      : null;
+    const defaults = deriveAdvancedColorUiDefaults(p, targetPool, allEmblems);
+    const nextColors = new Set(defaults.activeColors);
+    const nextCounts = Object.fromEntries(
+      POSITIVE_COLORS.map((c) => [c, defaults.colorCounts.get(c) ?? 0]),
+    ) as Record<EmblemColor, number>;
+    setColorMode(defaults.colorMode);
+    setActiveColors(nextColors);
+    setColorCounts(nextCounts);
+    activeColorsRef.current = nextColors;
+    colorCountsRef.current = nextCounts;
+    colorModeRef.current = defaults.colorMode;
+    userPinnedWeightedRef.current = false;
+    const targets = colorTargetsFromUi(nextColors, nextCounts);
+    prevExactFeasibleRef.current =
+      targets.size > 0
+        ? isExactColorModeFeasible(targetPool, targets, SLOTS, enumerateGradeVariantsRef.current)
+        : null;
+  }, []);
+
+  /** Fill preset color targets when the user enables colors but seeding was skipped. */
+  const seedColorTargetsIfEmpty = useCallback(() => {
+    if (activeColorsRef.current.size > 0) return;
+    const p = loadoutPokemonIdRef.current
+      ? (pokemonById.get(loadoutPokemonIdRef.current) ?? null)
+      : null;
+    if (!p) return;
+    const currentPool = buildPool(allEmblems, poolConfigRef.current, ownedRef.current);
+    const defaults = deriveAdvancedColorUiDefaults(p, currentPool, allEmblems);
+    if (defaults.activeColors.length === 0) return;
+    const nextColors = new Set(defaults.activeColors);
+    const nextCounts = Object.fromEntries(
+      POSITIVE_COLORS.map((c) => [c, defaults.colorCounts.get(c) ?? 0]),
+    ) as Record<EmblemColor, number>;
+    setActiveColors(nextColors);
+    setColorCounts(nextCounts);
+    activeColorsRef.current = nextColors;
+    colorCountsRef.current = nextCounts;
+    const targets = colorTargetsFromUi(nextColors, nextCounts);
+    prevExactFeasibleRef.current = isExactColorModeFeasible(
+      currentPool,
+      targets,
+      SLOTS,
+      enumerateGradeVariantsRef.current,
+    );
+  }, []);
+
+  const handleSetColorMode = useCallback(
+    (mode: ColorMode) => {
+      if (mode === "exact" && !exactColorModeFeasibleRef.current) return;
+      if (mode === "weighted" && colorModeRef.current === "exact") {
+        userPinnedWeightedRef.current = true;
+      } else if (mode === "exact" || mode === "off") {
+        userPinnedWeightedRef.current = false;
+        if (mode === "off") prevExactFeasibleRef.current = null;
+      }
+      setColorMode(mode);
+      if (mode !== "off") seedColorTargetsIfEmpty();
     },
-    [pokemon],
+    [seedColorTargetsIfEmpty],
   );
 
   const applyAdvancedProtectDefaults = useCallback(
@@ -426,15 +517,6 @@ export function useEmblemOptimizer(): {
     },
     [pokemon],
   );
-
-  // Refs so pokemon-change reset uses the latest pool/level without re-binding when
-  // owned/full or grade filters change (those must never trigger a settings reset).
-  const poolConfigRef = useRef(poolConfig);
-  const ownedRef = useRef(owned);
-  const optimizeLevelRef = useRef(optimizeLevel);
-  poolConfigRef.current = poolConfig;
-  ownedRef.current = owned;
-  optimizeLevelRef.current = optimizeLevel;
 
   /** Pokémon-specific defaults: colors, protect floors, custom priority tweaks. */
   const resetAdvancedForNewPokemon = useCallback(() => {
@@ -471,22 +553,52 @@ export function useEmblemOptimizer(): {
   }, [optimizeLevel, owned, applyAdvancedProtectDefaults, applyAdvancedColorDefaults]);
 
   const prevExpert = useRef(false);
-  const prevPokemonIdForExpert = useRef(loadout.pokemonId);
-  useEffect(() => {
+  const prevPokemonIdForExpert = useRef<string | null>(null);
+  useLayoutEffect(() => {
     if (!expert || !pokemon) {
-      prevPokemonIdForExpert.current = loadout.pokemonId;
       prevExpert.current = expert;
       return;
     }
 
+    const expertJustEnabled = expert && !prevExpert.current;
     const pokemonChanged = prevPokemonIdForExpert.current !== loadout.pokemonId;
     prevExpert.current = expert;
     prevPokemonIdForExpert.current = loadout.pokemonId;
 
-    // Only Pokémon changes auto-sync Advanced settings. Pool toggles (owned/full,
-    // mixed grades, grade filters) and inventory updates must not reset the UI.
-    if (pokemonChanged) resetAdvancedForNewPokemon();
+    // Seed Advanced defaults on first entry or Pokémon change — not on pool toggles.
+    if (expertJustEnabled || pokemonChanged) resetAdvancedForNewPokemon();
   }, [expert, loadout.pokemonId, pokemon, resetAdvancedForNewPokemon]);
+
+  // Pool change: auto-upgrade Weighted → Exact when feasible; downgrade Exact when not.
+  useLayoutEffect(() => {
+    if (!expert || colorMode === "off" || activeColorsRef.current.size === 0) {
+      prevExactFeasibleRef.current = null;
+      return;
+    }
+
+    const targets = colorTargetsFromUi(activeColorsRef.current, colorCountsRef.current);
+    if (targets.size === 0) return;
+
+    const exactFeasible = isExactColorModeFeasible(
+      pool,
+      targets,
+      SLOTS,
+      enumerateGradeVariantsRef.current,
+    );
+
+    if (colorMode === "exact" && !exactFeasible) {
+      setColorMode("weighted");
+    } else if (
+      colorMode === "weighted" &&
+      exactFeasible &&
+      prevExactFeasibleRef.current === false &&
+      !userPinnedWeightedRef.current
+    ) {
+      setColorMode("exact");
+    }
+
+    prevExactFeasibleRef.current = exactFeasible;
+  }, [expert, colorMode, poolConfig, owned, enumerateGradeVariants, pool]);
 
   const handleBasicSearch = useCallback(async () => {
     if (!pokemon || !basicObjective || basicPool.length < SLOTS) return;
@@ -601,7 +713,8 @@ export function useEmblemOptimizer(): {
     exactCap,
     setExactCap,
     colorMode,
-    setColorMode,
+    setColorMode: handleSetColorMode,
+    exactColorModeFeasible,
     activeColors,
     setActiveColors,
     colorCounts,
