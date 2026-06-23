@@ -238,11 +238,20 @@ describe("community data bundle", () => {
       }
     });
 
-    it("a move with videoAsset may still carry gifAsset (video wins at render time)", () => {
+    it("a move with videoAsset does not carry a redundant gifAsset", () => {
       const talonflame = bundle.pokemon.find((p) => p.id === "talonflame")!;
       const fly = talonflame.moves.find((m) => m.id === "fly")!;
       expect(fly.videoAsset).toBeDefined();
-      expect(fly.gifAsset).toBeDefined();
+      expect(fly.gifAsset).toBeUndefined();
+    });
+
+    it("no move carries both videoAsset and gifAsset", () => {
+      for (const p of bundle.pokemon) {
+        for (const m of p.moves) {
+          if (!m.videoAsset) continue;
+          expect(m.gifAsset, `${p.id}/${m.name}`).toBeUndefined();
+        }
+      }
     });
 
     it("videoAsset is optional: at least one Pokémon has none (fallback path)", () => {

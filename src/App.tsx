@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { StoreProvider, useStore } from "./state/store";
 import { pokemonById } from "./data/gameData";
 import { ROLE_COLOR, ROLE_LABEL } from "./ui/theme";
@@ -7,11 +7,16 @@ import { AppBar } from "./components/shell/AppBar";
 import { TabBar, TAB_ICONS, type Tab } from "./components/shell/TabBar";
 import { BuildScreen } from "./components/screens/BuildScreen";
 import { PokemonPickerSheet } from "./components/PokemonPicker";
-import { CompareScreen } from "./components/screens/CompareScreen";
 import { EmblemsScreen } from "./components/screens/EmblemsScreen";
 import { ItemsScreen } from "./components/screens/ItemsScreen";
-import { OptimizeScreen } from "./components/screens/OptimizeScreen";
 import { SettingsMenu } from "./components/SettingsMenu";
+
+const CompareScreen = lazy(() =>
+  import("./components/screens/CompareScreen").then((m) => ({ default: m.CompareScreen })),
+);
+const OptimizeScreen = lazy(() =>
+  import("./components/screens/OptimizeScreen").then((m) => ({ default: m.OptimizeScreen })),
+);
 
 const TAB_KEY = "unite-build-optimizer.tab.v1";
 const VALID_TABS: Tab[] = ["build", "optimize", "compare", "emblems", "items"];
@@ -50,9 +55,14 @@ function usePersistentTab(): [Tab, (t: Tab) => void] {
 function Workspace() {
   const { loadout, mode, setMode, expert } = useStore();
   const [tab, setTab] = usePersistentTab();
+  const [optimizeVisited, setOptimizeVisited] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pokePickerOpen, setPokePickerOpen] = useState(false);
   const [dataUpdate, setDataUpdate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tab === "optimize") setOptimizeVisited(true);
+  }, [tab]);
 
   const tabs = expert ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "compare");
 
@@ -156,10 +166,21 @@ function Workspace() {
           </div>
         )}
         {tab === "build" && <BuildScreen />}
-        <div className={tab === "optimize" ? undefined : "hidden"} aria-hidden={tab !== "optimize"}>
-          <OptimizeScreen onNavigate={setTab} />
-        </div>
-        {tab === "compare" && expert && <CompareScreen />}
+        {optimizeVisited && (
+          <div
+            className={tab === "optimize" ? undefined : "hidden"}
+            aria-hidden={tab !== "optimize"}
+          >
+            <Suspense fallback={null}>
+              <OptimizeScreen onNavigate={setTab} />
+            </Suspense>
+          </div>
+        )}
+        {tab === "compare" && expert && (
+          <Suspense fallback={null}>
+            <CompareScreen />
+          </Suspense>
+        )}
         {tab === "emblems" && <EmblemsScreen />}
         {tab === "items" && <ItemsScreen />}
       </main>

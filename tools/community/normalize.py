@@ -401,12 +401,12 @@ def build_pokemon(pokemon_rows, stats_rows, pokedex_to_id: dict, descs: dict | N
         pokemon_gifs = gifs.get(pid, {})
         pokemon_clips = clips.get(pid, {})
         for m in moves:
-            gif_path = pokemon_gifs.get(_norm_gif_key(m["name"]))
-            if gif_path:
-                m["gifAsset"] = gif_path
             clip_path = pokemon_clips.get(m["id"])
             if clip_path:
                 m["videoAsset"] = clip_path
+            gif_path = pokemon_gifs.get(_norm_gif_key(m["name"]))
+            if gif_path and not clip_path:
+                m["gifAsset"] = gif_path
         passive_ability = {
             "id": slugify(passive["name"]) if passive else f"{slugify(name)}-passive",
             "name": passive.get("name", "Passive") if passive else "Passive",
