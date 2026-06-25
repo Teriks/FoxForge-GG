@@ -12,7 +12,7 @@ import {
 import { MAX_EMBLEMS } from "../state/loadout";
 import { asset } from "../ui/asset";
 import { emblemIconForGrade } from "../ui/emblemIcon";
-import { heldItemStatLines } from "../ui/format";
+import { heldItemStatLines, statLines } from "../ui/format";
 import { gradesForEmblem } from "../ui/emblems";
 import { EMBLEM_COLOR_HEX, ALL_EMBLEM_COLORS, EMBLEM_GRADE_HEX } from "../ui/colors";
 import { PickerModal, type PickItem } from "./PickerModal";
@@ -25,8 +25,16 @@ import { itemTip, emblemTip, statsAtGrade } from "./tips";
 type Picker = { kind: "held"; slot: number } | { kind: "battle" } | { kind: "emblem" } | null;
 
 export function LoadoutEditor() {
-  const { loadout, dispatch, owned, toggleOwned, expert, heldSlotGrades, setHeldItemGradeForSlot } =
-    useStore();
+  const {
+    loadout,
+    dispatch,
+    owned,
+    toggleOwned,
+    expert,
+    heldSlotGrades,
+    setHeldItemGradeForSlot,
+    heldItemGrade,
+  } = useStore();
   const [picker, setPicker] = useState<Picker>(null);
 
   const emblemGoldOnlyIds = useMemo(
@@ -39,18 +47,19 @@ export function LoadoutEditor() {
     name: i.displayName,
     icon: i.iconAsset,
     title: i.description,
+    tip: itemTip(i, heldItemGrade(i.id)),
   }));
   const battlePickItems: PickItem[] = battleItems.map((i) => ({
     id: i.id,
     name: i.displayName,
     icon: i.iconAsset,
     title: i.description,
+    tip: itemTip(i),
   }));
   const emblemPickItems: PickItem[] = emblems.map((e) => ({
     id: e.id,
     name: e.pokemonName,
     icon: e.iconAsset,
-    subtitle: e.colors.join("/"),
     colors: e.colors,
   }));
 
@@ -228,6 +237,7 @@ export function LoadoutEditor() {
           title="Choose Held Item"
           items={heldPickItems}
           onPick={(id) => dispatch({ type: "setHeldItem", slot: picker.slot, id })}
+          onClear={() => dispatch({ type: "setHeldItem", slot: picker.slot, id: null })}
           onClose={() => setPicker(null)}
         />
       )}
@@ -236,6 +246,7 @@ export function LoadoutEditor() {
           title="Choose Trainer Item"
           items={battlePickItems}
           onPick={(id) => dispatch({ type: "setBattleItem", id })}
+          onClear={() => dispatch({ type: "setBattleItem", id: null })}
           onClose={() => setPicker(null)}
         />
       )}
@@ -252,6 +263,19 @@ export function LoadoutEditor() {
           onToggleOwn={toggleOwned}
           goldOnlyIds={emblemGoldOnlyIds}
           iconForGrade={(id, g) => emblemIconForGrade({ id }, g)}
+          subtitleForGrade={(id, g) => {
+            const e = emblemById.get(id);
+            if (!e) return "";
+            return (
+              statLines(e.statsByGrade[g === "platinum" ? "gold" : g], true)
+                .map((l) => `${l.label} ${l.value}`)
+                .join(" · ") || "—"
+            );
+          }}
+          tipForGrade={(id, g) => {
+            const e = emblemById.get(id);
+            return e ? emblemTip(e, g) : null;
+          }}
           filters={ALL_EMBLEM_COLORS.map((c) => ({
             label: c,
             activeColor: EMBLEM_COLOR_HEX[c],

@@ -13,6 +13,8 @@ import { emblemsForGrade } from "../ui/emblems";
 import { ownedKey, ownedEmblemsToFileJSON, parseOwnedEmblemsFile } from "../state/loadout";
 import { emblemIconForGrade } from "../ui/emblemIcon";
 import { EmblemSetGuide } from "./EmblemSetGuide";
+import { Tooltip } from "./Tooltip";
+import { emblemTip } from "./tips";
 import type { EmblemColor, EmblemGrade } from "../types";
 
 const GRADES: EmblemGrade[] = ["bronze", "silver", "gold"];
@@ -197,40 +199,45 @@ export function InventoryManager() {
           const isOwned = owned.has(ownedKey(e.id, grade));
           const stats = statLines(e.statsByGrade[grade === "platinum" ? "gold" : grade], true);
           return (
-            <button
-              key={e.id}
-              onClick={() => toggleOwned(e.id, grade)}
-              className={`relative flex min-h-11 items-center gap-2 rounded-xl border p-2 text-left transition ${
-                isOwned ? "border-as-border bg-as-bg" : "border-line hover:border-line"
-              }`}
-            >
-              <span className="relative shrink-0">
-                <img
-                  src={asset(emblemIconForGrade(e, grade))}
-                  alt={e.pokemonName}
-                  loading="lazy"
-                  className="h-10 w-10 object-contain"
-                />
-                <span className="absolute -left-0.5 -top-0.5 flex gap-0.5">
-                  {e.colors.map((c) => (
-                    <span
-                      key={c}
-                      className="h-2 w-2 rounded-full ring-1 ring-white"
-                      style={{ background: EMBLEM_COLOR_HEX[c] }}
-                    />
-                  ))}
+            <Tooltip key={e.id} content={emblemTip(e, grade)} className="w-full">
+              <button
+                onClick={() => toggleOwned(e.id, grade)}
+                className={`relative flex min-h-11 w-full items-center gap-2 rounded-xl border p-2 text-left transition ${
+                  isOwned ? "border-as-border bg-as-bg" : "border-line hover:border-line"
+                }`}
+              >
+                <span className="relative shrink-0">
+                  <img
+                    src={asset(emblemIconForGrade(e, grade))}
+                    alt={e.pokemonName}
+                    loading="lazy"
+                    className="h-10 w-10 object-contain"
+                  />
+                  <span className="absolute -left-0.5 -top-0.5 flex gap-0.5">
+                    {e.colors.map((c) => (
+                      <span
+                        key={c}
+                        className="h-2 w-2 rounded-full ring-1 ring-white"
+                        style={{ background: EMBLEM_COLOR_HEX[c] }}
+                      />
+                    ))}
+                  </span>
                 </span>
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-medium text-ink">{e.pokemonName}</span>
-                <span className="block truncate text-[10px] text-faint">
-                  {stats.map((l) => `${l.label} ${l.value}`).join(" · ") || "—"}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-medium text-ink">
+                    {e.pokemonName}
+                  </span>
+                  <span className="block truncate text-[10px] text-faint">
+                    {stats.map((l) => `${l.label} ${l.value}`).join(" · ") || "—"}
+                  </span>
                 </span>
-              </span>
-              <span className={`text-base leading-none ${isOwned ? "text-as-ink" : "text-faint"}`}>
-                ★
-              </span>
-            </button>
+                <span
+                  className={`text-base leading-none ${isOwned ? "text-as-ink" : "text-faint"}`}
+                >
+                  ★
+                </span>
+              </button>
+            </Tooltip>
           );
         })}
       </div>

@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { asset } from "../ui/asset";
 import { EMBLEM_COLOR_HEX, EMBLEM_GRADE_HEX, readableTextColor } from "../ui/colors";
 import { BottomSheet } from "./shell/BottomSheet";
+import { Tooltip } from "./Tooltip";
 import type { EmblemColor, EmblemGrade } from "../types";
 
 export interface PickItem {
@@ -10,6 +11,7 @@ export interface PickItem {
   icon: string;
   subtitle?: string;
   title?: string; // hover tooltip (e.g. item description)
+  tip?: ReactNode; // rich long-press/hover tooltip content (e.g. itemTip output)
   colors?: EmblemColor[];
 }
 
@@ -19,12 +21,15 @@ interface Props {
   title: string;
   items: PickItem[];
   onPick: (id: string, grade?: EmblemGrade) => void;
+  onClear?: () => void; // when set, render a dashed "Empty slot" tile that clears the slot then closes
   onClose: () => void;
   filters?: { label: string; predicate: (id: string) => boolean; activeColor?: string }[];
   grades?: boolean; // show a Bronze/Silver/Gold toggle (emblems)
   owned?: Set<string>; // keys are `${id}:${grade}`; enables ownership stars + "Owned only"
   onToggleOwn?: (id: string, grade: EmblemGrade) => void;
   iconForGrade?: (id: string, grade: EmblemGrade) => string; // grade-correct image (emblems)
+  tipForGrade?: (id: string, grade: EmblemGrade) => ReactNode; // grade-aware tooltip (emblems)
+  subtitleForGrade?: (id: string, grade: EmblemGrade) => string; // grade-aware subtitle (emblems)
   goldOnlyIds?: Set<string>; // hide from silver/bronze pickers (UNITE-DB gold-only emblems)
   footer?: ReactNode;
 }
@@ -39,6 +44,9 @@ export function PickerModal({
   owned,
   onToggleOwn,
   iconForGrade,
+  tipForGrade,
+  subtitleForGrade,
+  onClear,
   goldOnlyIds,
 }: Props) {
   const [query, setQuery] = useState("");
@@ -132,18 +140,46 @@ export function PickerModal({
         )}
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {onClear && (
+          <button
+            type="button"
+            onClick={() => {
+              onClear();
+              onClose();
+            }}
+            title="Empty slot"
+            className="flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line p-2 text-center text-faint hover:border-accent hover:bg-accent-weak"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeDasharray="3 3"
+              className="h-12 w-12"
+              aria-hidden="true"
+            >
+              <path d="M6 6 L18 18" />
+              <path d="M18 6 L6 18" />
+            </svg>
+            <span className="text-xs font-medium leading-tight">Empty slot</span>
+          </button>
+        )}
         {shown.map((it) => {
           const ownedHere = isOwned(it.id);
-          return (
+          const tip = grades && tipForGrade ? tipForGrade(it.id, grade) : it.tip;
+          const subtitle =
+            grades && subtitleForGrade ? subtitleForGrade(it.id, grade) : it.subtitle;
+          const tile = (
             <button
-              key={it.id}
               type="button"
               onClick={() => {
                 onPick(it.id, grades ? grade : undefined);
                 onClose();
               }}
               title={it.title ?? it.name}
-              className={`relative flex min-h-24 flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center hover:border-accent hover:bg-accent-weak ${
+              className={`relative flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border p-2 text-center hover:border-accent hover:bg-accent-weak ${
                 ownedHere ? "border-as-border bg-as-bg" : "border-line"
               }`}
             >
@@ -180,8 +216,17 @@ export function PickerModal({
                 className="h-12 w-12 object-contain"
               />
               <span className="text-xs font-medium leading-tight text-ink">{it.name}</span>
-              {it.subtitle && <span className="text-[10px] text-faint">{it.subtitle}</span>}
+              {subtitle && <span className="text-[10px] text-faint">{subtitle}</span>}
             </button>
+          );
+          return tip ? (
+            <Tooltip key={it.id} content={tip} className="w-full">
+              {tile}
+            </Tooltip>
+          ) : (
+            <span key={it.id} className="contents">
+              {tile}
+            </span>
           );
         })}
       </div>
